@@ -1,0 +1,10 @@
+# Ignore Python virtual env and caches, keep source files tracked
+# Created by venv; see https://docs.python.org/3/library/venv.html
+venv/
+ENV/
+env/
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.env
