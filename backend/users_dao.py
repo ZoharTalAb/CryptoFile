@@ -4,10 +4,8 @@ def create_user(username: str, email: str, password_hash: str) -> int:
     conn = get_connection()
     cur = conn.cursor()
 
-    sql = """
-    INSERT INTO users (username, email, password_hash)
-    VALUES (%s, %s, %s)
-    """
+    sql = "INSERT INTO users (username, email, password_hash) VALUES (%s, %s, %s)"
+
     cur.execute(sql, (username, email, password_hash))
     conn.commit()
 
