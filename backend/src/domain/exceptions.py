@@ -12,3 +12,23 @@ class PayloadTooLargeError(DomainError):
 
 class CorruptedPayloadError(DomainError):
     pass
+
+
+class InvalidPasswordError(DomainError):
+    pass
+
+
+class InvalidSaltError(DomainError):
+    pass
+
+
+class InvalidWrappedKeyError(DomainError):
+    pass
+
+
+class InvalidKeyLengthError(DomainError):
+    pass
+
+
+class DecryptionFailedError(DomainError):
+    pass
