@@ -32,3 +32,15 @@ class InvalidKeyLengthError(DomainError):
 
 class DecryptionFailedError(DomainError):
     pass
+
+
+class UserNotFoundError(DomainError):
+    pass
+
+
+class InvalidCredentialsError(DomainError):
+    pass
+
+
+class UserAlreadyExistsError(DomainError):
+    pass
