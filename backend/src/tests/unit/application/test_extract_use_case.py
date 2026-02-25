@@ -2,7 +2,7 @@ from application.files.embed_use_case import EmbedUseCase
 from application.files.extract_use_case import ExtractUseCase
 from application.key_management.key_service import KeyService
 from domain.crypto.aes_engine import AESEngine
-from domain.stego.audio_engine import AudioStegoEngine
+from infrastructure.stego.audio_engine import AudioStegoEngine
 
 
 def generate_test_wav(duration_seconds=1, sample_rate=44100):

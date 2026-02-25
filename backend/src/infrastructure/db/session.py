@@ -1,12 +1,21 @@
+import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 
-DATABASE_URL = "sqlite:///./cryptofile.db"
+ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
+
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+# Allow SQLite fallback ONLY for tests
+if not DATABASE_URL:
+    if ENVIRONMENT == "test":
+        DATABASE_URL = "sqlite:///./test.db"
+    else:
+        raise RuntimeError("DATABASE_URL must be set")
 
 engine = create_engine(
     DATABASE_URL,
-    echo=False,
-    future=True,
+    pool_pre_ping=True,
 )
 
 SessionLocal = sessionmaker(

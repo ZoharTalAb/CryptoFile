@@ -14,10 +14,10 @@ class DownloadMessageUseCase:
         message = self._repository.get_by_id(message_id)
 
         if not message:
-            raise ValueError("Message not found")
+            raise DomainError("Message not found")
 
         if message.recipient_id != current_user_id:
-            raise PermissionError("Not allowed to download this message")
+            raise DomainError("Not allowed to download this message")
 
         message.mark_delivered(datetime.now(timezone.utc))
 

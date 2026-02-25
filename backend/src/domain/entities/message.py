@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 from uuid import UUID
-
+from domain.enums.stego_type import StegoType
 from domain.enums.message_status import MessageStatus
 from domain.exceptions import DomainError
 
@@ -14,7 +14,7 @@ class Message:
         recipient_id: int,
         file_path: str,
         file_hash: str,
-        stego_type: str,
+        stego_type: StegoType,
         key_version: int,
         status: MessageStatus,
         created_at: datetime,

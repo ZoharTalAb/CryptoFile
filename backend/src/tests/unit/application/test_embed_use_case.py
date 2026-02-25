@@ -3,7 +3,7 @@ import pytest
 from application.files.embed_use_case import EmbedUseCase
 from application.key_management.key_service import KeyService
 from domain.crypto.aes_engine import AESEngine
-from domain.stego.audio_engine import AudioStegoEngine
+from infrastructure.stego.audio_engine import AudioStegoEngine
 
 
 def generate_test_wav(duration_seconds=1, sample_rate=44100):
@@ -54,6 +54,11 @@ def test_embed_use_case_roundtrip():
         salt,
     )
 
-    decrypted = aes_engine.decrypt(encrypted_payload, dek)
+    # 🔐 MUST pass same AAD used in EmbedUseCase
+    decrypted = aes_engine.decrypt(
+        encrypted_payload,
+        dek,
+        aad=wrapped_dek,
+    )
 
     assert decrypted == payload

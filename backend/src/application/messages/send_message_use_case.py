@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from uuid import uuid4
-
+from domain.enums.stego_type import StegoType
 from domain.entities.message import Message
 from domain.enums.message_status import MessageStatus
 from domain.interfaces.message_repository import MessageRepository
@@ -17,7 +17,7 @@ class SendMessageUseCase:
         recipient_id: int,
         file_path: str,
         file_hash: str,
-        stego_type: str,
+        stego_type: StegoType,
         key_version: int,
     ) -> Message:
 

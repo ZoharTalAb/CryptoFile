@@ -13,9 +13,5 @@ class UserRepository(ABC):
         pass
 
     @abstractmethod
-    def verify_password(self, email: str, password: str) -> bool:
-        pass
-
-    @abstractmethod
     def get_by_id(self, user_id: int) -> User | None:
         pass
