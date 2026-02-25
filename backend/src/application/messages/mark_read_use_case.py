@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from uuid import UUID
 
 from domain.interfaces.message_repository import MessageRepository
+from domain.exceptions import DomainError
 
 
 class MarkReadUseCase:
@@ -13,10 +14,10 @@ class MarkReadUseCase:
         message = self._repository.get_by_id(message_id)
 
         if not message:
-            raise ValueError("Message not found")
+            raise DomainError("Message not found")
 
         if message.recipient_id != current_user_id:
-            raise PermissionError("Not allowed to mark this message as read")
+            raise DomainError("Not allowed to mark this message as read")
 
         message.mark_read(datetime.now(timezone.utc))
 

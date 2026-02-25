@@ -5,7 +5,9 @@ import pytest
 
 from domain.entities.message import Message
 from domain.enums.message_status import MessageStatus
+from domain.enums.stego_type import StegoType
 from domain.interfaces.message_repository import MessageRepository
+from domain.exceptions import DomainError
 from application.messages.mark_read_use_case import MarkReadUseCase
 
 
@@ -36,7 +38,7 @@ def create_message(status=MessageStatus.SENT):
         recipient_id=2,
         file_path="file.bin",
         file_hash="hash",
-        stego_type="audio",
+        stego_type=StegoType.AUDIO,
         key_version=1,
         status=status,
         created_at=datetime.now(timezone.utc),
@@ -70,7 +72,7 @@ def test_mark_read_wrong_user():
     repo = FakeMessageRepository(message)
     use_case = MarkReadUseCase(repo)
 
-    with pytest.raises(PermissionError):
+    with pytest.raises(DomainError):
         use_case.execute(message.id, current_user_id=99)
 
 
@@ -78,5 +80,5 @@ def test_mark_read_not_found():
     repo = FakeMessageRepository(None)
     use_case = MarkReadUseCase(repo)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(DomainError):
         use_case.execute(uuid4(), current_user_id=2)

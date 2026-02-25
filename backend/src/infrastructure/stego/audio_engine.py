@@ -1,6 +1,6 @@
 import io
 import wave
-
+from domain.interfaces.stego_engine import StegoEngine
 from domain.exceptions import (
     CorruptedPayloadError,
     PayloadTooLargeError,
@@ -8,7 +8,7 @@ from domain.exceptions import (
 )
 
 
-class AudioStegoEngine:
+class AudioStegoEngine(StegoEngine):
     HEADER_BITS = 32  # 4 bytes length header
 
     def embed(self, audio_bytes: bytes, encrypted_payload: bytes) -> bytes:

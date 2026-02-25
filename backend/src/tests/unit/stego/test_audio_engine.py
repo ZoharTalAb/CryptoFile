@@ -2,7 +2,7 @@ import io
 import wave
 import pytest
 
-from domain.stego.audio_engine import AudioStegoEngine
+from infrastructure.stego.audio_engine import AudioStegoEngine
 from domain.exceptions import PayloadTooLargeError, CorruptedPayloadError
 
 

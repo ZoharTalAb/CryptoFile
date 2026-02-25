@@ -1,23 +1,25 @@
 import io
 import numpy as np
+from domain.interfaces.stego_engine import StegoEngine
 from PIL import Image
 from domain.exceptions import (
     CorruptedPayloadError,
     PayloadTooLargeError,
 )
 
-class ImageStegoEngine:
+
+class ImageStegoEngine(StegoEngine):
     HEADER_BITS = 32  # 4 bytes שמציינים את אורך ההודעה
 
     def embed(self, image_bytes: bytes, encrypted_payload: bytes) -> bytes:
-        img = Image.open(io.BytesIO(image_bytes)).convert('RGB')
+        img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
         pixels = np.array(img)
-        
-        flat_pixels = pixels.flatten().astype(np.uint16) 
-        
+
+        flat_pixels = pixels.flatten().astype(np.uint16)
+
         length_header = len(encrypted_payload).to_bytes(4, "big")
         full_payload = length_header + encrypted_payload
-        
+
         if len(full_payload) * 8 > len(flat_pixels):
             raise PayloadTooLargeError()
 
@@ -33,13 +35,13 @@ class ImageStegoEngine:
         # החזרה לצורה המקורית של התמונה
         new_pixels = flat_pixels.reshape(pixels.shape).astype(np.uint8)
         new_img = Image.fromarray(new_pixels)
-        
+
         output_buffer = io.BytesIO()
-        new_img.save(output_buffer, format="PNG") # PNG שומר על הביטים (Lossless)
+        new_img.save(output_buffer, format="PNG")  # PNG שומר על הביטים (Lossless)
         return output_buffer.getvalue()
 
     def extract(self, image_bytes: bytes) -> bytes:
-        img = Image.open(io.BytesIO(image_bytes)).convert('RGB')
+        img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
         flat_pixels = np.array(img).flatten()
 
         if len(flat_pixels) < self.HEADER_BITS:
@@ -67,7 +69,7 @@ class ImageStegoEngine:
         payload_bits = []
         start_index = self.HEADER_BITS
         end_index = self.HEADER_BITS + (payload_length * 8)
-        
+
         for i in range(start_index, end_index):
             payload_bits.append(flat_pixels[i] & 1)
 

@@ -1,3 +1,8 @@
+import os
+
+# חייב לבוא לפני ה-import של JWTService
+os.environ["JWT_SECRET"] = "test-secret-key"
+
 import pytest
 from application.auth.jwt_service import JWTService
 

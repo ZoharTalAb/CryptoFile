@@ -1,4 +1,3 @@
-import bcrypt
 from sqlalchemy.orm import Session
 
 from domain.entities.user import User
@@ -20,40 +19,17 @@ class UserRepositoryImpl(UserRepository):
         return self._to_entity(model)
 
     def save(self, user: User) -> User:
-        # hash password if it's not already hashed
-        if not user.password_hash.startswith("$2b$"):
-            hashed = bcrypt.hashpw(
-                user.password_hash.encode(), bcrypt.gensalt()
-            ).decode()
-        else:
-            hashed = user.password_hash
-
+        # Repository לא מבצע hashing!
         model = UserModel(
             email=user.email,
-            password_hash=hashed,
+            password_hash=user.password_hash,
         )
 
         self._session.add(model)
         self._session.commit()
         self._session.refresh(model)
 
-        return User(
-            id=model.id,
-            email=model.email,
-            password_hash=model.password_hash,
-            created_at=model.created_at,
-        )
-
-    def verify_password(self, email: str, password: str) -> bool:
-        model = self._session.query(UserModel).filter(UserModel.email == email).first()
-
-        if not model:
-            return False
-
-        return bcrypt.checkpw(
-            password.encode(),
-            model.password_hash.encode(),
-        )
+        return self._to_entity(model)
 
     def get_by_id(self, user_id: int) -> User | None:
         model = self._session.query(UserModel).filter(UserModel.id == user_id).first()
