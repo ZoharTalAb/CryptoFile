@@ -7,3 +7,5 @@ passlib[bcrypt]
 cryptography
 pillow
 numpy
+psycopg2-binary==2.9.9
+python-multipart

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Response
-from application.services.stego_dispatcher import StegoDispatcher
+from infrastructure.stego.stego_dispatcher import StegoDispatcher
 from domain.exceptions import CorruptedPayloadError, PayloadTooLargeError
 from domain.enums.stego_type import StegoType
 
