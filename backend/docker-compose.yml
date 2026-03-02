@@ -17,6 +17,9 @@ services:
     container_name: cryptofile_api
     depends_on:
       - db
+    volumes:
+      - .:/app
+      - ./uploads:/app/uploads  
     environment:
       DATABASE_URL: postgresql+psycopg2://cryptofile:cryptofile@db:5432/cryptofile
       JWT_SECRET: supersecret
