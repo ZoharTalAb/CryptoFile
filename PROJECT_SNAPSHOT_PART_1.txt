@@ -1,0 +1,3815 @@
+================================================================================
+CRYPTOFILE BACKEND - COMPLETE PROJECT SNAPSHOT
+================================================================================
+Generated: March 2, 2026
+Repository: ZoharTalAb/CryptoFile (main branch)
+
+This is a COMPLETE raw snapshot of all text-based source files in the backend,
+including: .py, .txt, .md, .yml, .yaml, .json, .env.example, Dockerfile, and
+docker-compose.yml files.
+
+Excluded: venv, __pycache__, .git, node_modules, test.db, .pytest_cache
+
+================================================================================
+DIRECTORY STRUCTURE (Complete Tree)
+================================================================================
+
+backend/
+├── .dockerignore
+├── .env.example
+├── backend_code_dump.txt
+├── docker-compose.yml
+├── Dockerfile
+├── requirements.txt
+├── requirements-dev.txt
+├── src/
+│   ├── main.py
+│   ├── requirements.txt
+│   ├── application/
+│   │   ├── __init__.py
+│   │   ├── auth/
+│   │   │   ├── auth_service.py
+│   │   │   └── jwt_service.py
+│   │   ├── files/
+│   │   │   ├── embed_use_case.py
+│   │   │   ├── extract_use_case.py
+│   │   │   ├── revoke_share_use_case.py
+│   │   │   └── share_use_case.py
+│   │   ├── key_management/
+│   │   │   └── key_service.py
+│   │   ├── messages/
+│   │   │   ├── download_message_use_case.py
+│   │   │   ├── list_inbox_use_case.py
+│   │   │   ├── mark_read_use_case.py
+│   │   │   └── send_message_use_case.py
+│   │   └── users/
+│   │       ├── __init__.py
+│   │       └── user_service.py
+│   ├── core/
+│   │   ├── config.py
+│   │   ├── logging.py
+│   │   └── security.py
+│   ├── domain/
+│   │   ├── __init__.py
+│   │   ├── crypto/
+│   │   │   ├── aes_engine.py
+│   │   │   ├── kdf_engine.py
+│   │   │   └── key_wrapper.py
+│   │   ├── entities/
+│   │   │   ├── __init__.py
+│   │   │   ├── file.py
+│   │   │   ├── file_version.py
+│   │   │   ├── message.py
+│   │   │   ├── trusted_relation.py
+│   │   │   └── user.py
+│   │   ├── enums/
+│   │   │   ├── message_status.py
+│   │   │   └── stego_type.py
+│   │   ├── exceptions.py
+│   │   ├── interfaces/
+│   │   │   ├── __init__.py
+│   │   │   ├── file_key_repository.py
+│   │   │   ├── file_repository.py
+│   │   │   ├── message_repository.py
+│   │   │   ├── stego_engine.py
+│   │   │   ├── storage_interface.py
+│   │   │   ├── trusted_repository.py
+│   │   │   └── user_repository.py
+│   │   └── value_objects/
+│   │       ├── file_id.py
+│   │       ├── user_id.py
+│   │       ├── version_id.py
+│   │       └── wrapped_key.py
+│   ├── infrastructure/
+│   │   ├── __init__.py
+│   │   ├── db/
+│   │   │   ├── __init__.py
+│   │   │   ├── init_db.py
+│   │   │   ├── models.py
+│   │   │   ├── session.py
+│   │   │   └── repositories/
+│   │   │       ├── file_key_repository_impl.py
+│   │   │       ├── file_repository_impl.py
+│   │   │       ├── trusted_repository_impl.py
+│   │   │       └── user_repository_impl.py
+│   │   ├── logging/
+│   │   │   └── audit_logger.py
+│   │   ├── stego/
+│   │   │   ├── audio_engine.py
+│   │   │   ├── factory.py
+│   │   │   ├── image_engine.py
+│   │   │   ├── stego_dispatcher.py
+│   │   │   └── text_engine.py
+│   │   └── storage/
+│   │       └── local_storage.py
+│   ├── presentation/
+│   │   ├── dependencies.py
+│   │   ├── routes/
+│   │   │   ├── auth_routes.py
+│   │   │   ├── file_routes.py
+│   │   │   ├── share_routes.py
+│   │   │   ├── stego_routes.py
+│   │   │   └── user_routes.py
+│   │   └── schemas/
+│   │       ├── auth_schema.py
+│   │       ├── file_schema.py
+│   │       └── user_schema.py
+│   └── tests/
+│       ├── conftest.py
+│       └── unit/
+│           ├── application/
+│           │   ├── test_download_message_use_case.py
+│           │   ├── test_embed_use_case.py
+│           │   ├── test_extract_use_case.py
+│           │   ├── test_jwt_service.py
+│           │   ├── test_key_service.py
+│           │   ├── test_list_inbox_use_case.py
+│           │   ├── test_mark_read_use_case.py
+│           │   ├── test_send_message_use_case.py
+│           │   └── test_user_service.py
+│           ├── crypto/
+│           │   ├── test_aes_engine.py
+│           │   ├── test_kdf_engine.py
+│           │   └── test_key_wrapper.py
+│           ├── domain/
+│           │   └── test_message_entity.py
+│           └── stego/
+│               ├── test_audio_engine.py
+│               ├── test_image_engine.py
+│               └── test_text_engine.py
+
+================================================================================
+FILE CONTENTS (In Order)
+================================================================================
+
+=====================================================
+FILE: .dockerignore
+=====================================================
+.venv
+__pycache__
+*.pyc
+.git
+.gitignore
+tests
+test.db
+
+=====================================================
+FILE: .env.example
+=====================================================
+DATABASE_URL=sqlite:///./cryptofile.db
+JWT_SECRET=change_me
+JWT_ALGORITHM=HS256
+
+=====================================================
+FILE: backend_code_dump.txt
+=====================================================
+# CryptoFile - Consolidated Source Dump
+
+---
+
+Order: domain, application, infrastructure, presentation, core, tests
+
+
+====================
+DOMAIN
+====================
+
+# domain/__init__.py
+
+# (empty)
+
+
+# domain/exceptions.py
+class DomainError(Exception):
+    pass
+
+
+class UnsupportedAudioFormatError(DomainError):
+    pass
+
+
+class PayloadTooLargeError(DomainError):
+    pass
+
+
+class CorruptedPayloadError(DomainError):
+    pass
+
+
+class InvalidPasswordError(DomainError):
+    pass
+
+
+class InvalidSaltError(DomainError):
+    pass
+
+
+class InvalidWrappedKeyError(DomainError):
+    pass
+
+
+class InvalidKeyLengthError(DomainError):
+    pass
+
+
+class DecryptionFailedError(DomainError):
+    pass
+
+
+class UserNotFoundError(DomainError):
+    pass
+
+
+class InvalidCredentialsError(DomainError):
+    pass
+
+
+class UserAlreadyExistsError(DomainError):
+    pass
+
+
+# domain/enums/stego_type.py
+from enum import Enum
+
+
+class StegoType(str, Enum):
+    AUDIO = "audio"
+    IMAGE = "image"
+    TEXT = "text"
+
+
+# domain/value_objects/file_id.py
+# (empty)
+
+
+# domain/value_objects/user_id.py
+# (empty)
+
+
+# domain/value_objects/version_id.py
+# (empty)
+
+
+# domain/enums/message_status.py
+from enum import Enum
+
+
+class MessageStatus(str, Enum):
+    SENT = "SENT"
+    DELIVERED = "DELIVERED"
+    READ = "READ"
+
+
+# domain/value_objects/wrapped_key.py
+# (empty)
+
+
+# domain/entities/__init__.py
+# (empty)
+
+
+# domain/entities/user.py
+from dataclasses import dataclass
+from datetime import datetime
+
+
+@dataclass
+class User:
+    id: int | None
+    email: str
+    password_hash: str
+    created_at: datetime
+
+
+# domain/entities/trusted_relation.py
+# (empty)
+
+
+# domain/entities/message.py
+from datetime import datetime
+from typing import Optional
+from uuid import UUID
+from domain.enums.stego_type import StegoType
+from domain.enums.message_status import MessageStatus
+from domain.exceptions import DomainError
+
+
+class Message:
+    def __init__(
+        self,
+        id: UUID,
+        sender_id: int,
+        recipient_id: int,
+        file_path: str,
+        file_hash: str,
+        stego_type: StegoType,
+        key_version: int,
+        status: MessageStatus,
+        created_at: datetime,
+        delivered_at: Optional[datetime] = None,
+        read_at: Optional[datetime] = None,
+    ):
+        self.id = id
+        self.sender_id = sender_id
+        self.recipient_id = recipient_id
+        self.file_path = file_path
+        self.file_hash = file_hash
+        self.stego_type = stego_type
+        self.key_version = key_version
+        self.status = status
+        self.created_at = created_at
+        self.delivered_at = delivered_at
+        self.read_at = read_at
+
+    # -----------------------
+    # Domain Logic
+    # -----------------------
+
+    def mark_delivered(self, now: datetime) -> None:
+        if self.status == MessageStatus.READ:
+            raise DomainError("Cannot mark READ message as DELIVERED")
+
+        if self.status == MessageStatus.DELIVERED:
+            return  # idempotent
+
+        if self.status != MessageStatus.SENT:
+            raise DomainError("Invalid state transition to DELIVERED")
+
+        self.status = MessageStatus.DELIVERED
+        self.delivered_at = now
+
+    def mark_read(self, now: datetime) -> None:
+        if self.status == MessageStatus.READ:
+            return  # idempotent
+
+        # If message was not delivered yet, mark delivered first
+        if self.status == MessageStatus.SENT:
+            self.mark_delivered(now)
+
+        if self.status != MessageStatus.DELIVERED:
+            raise DomainError("Invalid state transition to READ")
+
+        self.status = MessageStatus.READ
+        self.read_at = now
+
+
+# domain/entities/file_version.py
+# (empty)
+
+
+# domain/entities/file.py
+# (empty)
+
+
+# domain/interfaces/message_repository.py
+from abc import ABC, abstractmethod
+from typing import List
+from uuid import UUID
+
+from domain.entities.message import Message
+
+
+class MessageRepository(ABC):
+
+    @abstractmethod
+    def save(self, message: Message) -> Message:
+        pass
+
+    @abstractmethod
+    def get_by_id(self, message_id: UUID) -> Message | None:
+        pass
+
+    @abstractmethod
+    def list_for_recipient(self, recipient_id: int) -> List[Message]:
+        pass
+
+    @abstractmethod
+    def update(self, message: Message) -> Message:
+        pass
+
+
+# domain/interfaces/file_repository.py
+# (empty)
+
+
+# domain/interfaces/file_key_repository.py
+# (empty)
+
+
+# domain/interfaces/stego_engine.py
+from abc import ABC, abstractmethod
+
+
+class StegoEngine(ABC):
+
+    @abstractmethod
+    def embed(self, cover_bytes: bytes, payload: bytes) -> bytes:
+        pass
+
+    @abstractmethod
+    def extract(self, stego_bytes: bytes) -> bytes:
+        pass
+
+
+# domain/interfaces/__init__.py
+# (empty)
+
+
+# domain/interfaces/user_repository.py
+from abc import ABC, abstractmethod
+from domain.entities.user import User
+
+
+class UserRepository(ABC):
+
+    @abstractmethod
+    def get_by_email(self, email: str) -> User | None:
+        pass
+
+    @abstractmethod
+    def save(self, user: User) -> User:
+        pass
+
+    @abstractmethod
+    def verify_password(self, email: str, password: str) -> bool:
+        pass
+
+    @abstractmethod
+    def get_by_id(self, user_id: int) -> User | None:
+        pass
+
+
+# domain/interfaces/trusted_repository.py
+# (empty)
+
+
+# domain/interfaces/storage_interface.py
+# (empty)
+
+
+# domain/crypto/key_wrapper.py
+from domain.crypto.aes_engine import AESEngine
+from domain.exceptions import (
+    InvalidKeyLengthError,
+    DecryptionFailedError,
+    InvalidWrappedKeyError,
+)
+
+
+class KeyWrapper:
+    """
+    Wraps and unwraps DEKs using KEK (AES-256-GCM).
+    Pure domain logic.
+    """
+
+    DEK_LENGTH = 32  # AES-256
+
+    @staticmethod
+    def wrap(dek: bytes, kek: bytes) -> bytes:
+        if not dek or len(dek) != KeyWrapper.DEK_LENGTH:
+            raise InvalidKeyLengthError("DEK must be 32 bytes")
+
+        engine = AESEngine()
+        return engine.encrypt(dek, kek)
+
+    @staticmethod
+    def unwrap(wrapped_dek: bytes, kek: bytes) -> bytes:
+        if not wrapped_dek:
+            raise InvalidWrappedKeyError("Wrapped key cannot be empty")
+
+        try:
+            engine = AESEngine()
+            dek = engine.decrypt(wrapped_dek, kek)
+        except DecryptionFailedError:
+            raise DecryptionFailedError("Failed to unwrap DEK")
+
+        if len(dek) != KeyWrapper.DEK_LENGTH:
+            raise InvalidKeyLengthError("Unwrapped DEK is invalid length")
+
+        return dek
+
+
+# domain/crypto/kdf_engine.py
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.backends import default_backend
+
+from domain.exceptions import (
+    InvalidSaltError,
+    InvalidPasswordError,
+)
+
+
+class KDFEngine:
+    """
+    Derives a 32-byte KEK from a password using PBKDF2-HMAC-SHA256.
+    Pure domain logic.
+    """
+
+    KEY_LENGTH = 32  # AES-256
+    ITERATIONS = 200_000  # Secure baseline
+
+    @staticmethod
+    def derive_key(password: bytes, salt: bytes) -> bytes:
+        if not password:
+            raise InvalidPasswordError("Password cannot be empty")
+
+        if not salt or len(salt) < 16:
+            raise InvalidSaltError("Salt must be at least 16 bytes")
+
+        kdf = PBKDF2HMAC(
+            algorithm=hashes.SHA256(),
+            length=KDFEngine.KEY_LENGTH,
+            salt=salt,
+            iterations=KDFEngine.ITERATIONS,
+            backend=default_backend(),
+        )
+
+        return kdf.derive(password)
+
+
+# domain/crypto/aes_engine.py
+import os
+
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
+from domain.exceptions import (
+    DomainError,
+    InvalidKeyLengthError,
+    DecryptionFailedError,
+)
+
+
+class AESEngine:
+    KEY_SIZE = 32  # 256-bit
+    NONCE_SIZE = 12  # 96-bit for GCM
+
+    def encrypt(self, plaintext: bytes, key: bytes) -> bytes:
+        if len(key) != self.KEY_SIZE:
+            raise InvalidKeyLengthError()
+
+        nonce = os.urandom(self.NONCE_SIZE)
+
+        aesgcm = AESGCM(key)
+        ciphertext = aesgcm.encrypt(nonce, plaintext, None)
+
+        return nonce + ciphertext
+
+    def decrypt(self, encrypted_data: bytes, key: bytes) -> bytes:
+        if len(key) != self.KEY_SIZE:
+            raise InvalidKeyLengthError()
+
+        if len(encrypted_data) < self.NONCE_SIZE:
+            raise DecryptionFailedError()
+
+        nonce = encrypted_data[: self.NONCE_SIZE]
+        ciphertext = encrypted_data[self.NONCE_SIZE :]
+
+        aesgcm = AESGCM(key)
+
+        try:
+            return aesgcm.decrypt(nonce, ciphertext, None)
+        except Exception:
+            raise DecryptionFailedError()
+
+
+====================
+APPLICATION
+====================
+
+# application/__init__.py
+# (empty)
+
+
+# application/services/stego_dispatcher.py
+from infrastructure.stego.audio_engine import AudioStegoEngine
+from infrastructure.stego.image_engine import ImageStegoEngine
+from infrastructure.stego.text_engine import TextStegoEngine
+
+
+class StegoDispatcher:
+    def __init__(self):
+        # אתחול של שלושת המנועים
+        self._image_engine = ImageStegoEngine()
+        self._audio_engine = AudioStegoEngine()
+        self._text_engine = TextStegoEngine()
+
+    def dispatch_embed(self, stego_type: str, file_bytes: bytes, data: bytes) -> bytes:
+        """
+        מקבלת סוג סטגנוגרפיה, את קובץ הכיסוי ואת המידע להחבאה, ומחזירה קובץ מוטמע.
+        """
+        if stego_type == "image":
+            return self._image_engine.embed(file_bytes, data)
+
+        elif stego_type == "audio":
+            return self._audio_engine.embed(file_bytes, data)
+
+        elif stego_type == "text":
+            return self._text_engine.embed(file_bytes, data)
+
+        else:
+            # אם מישהו ניסה לשלוח סוג שלא קיים (למשל 'video') - זורקים שגיאה
+            raise ValueError(f"Unsupported stego type: {stego_type}")
+
+    def dispatch_extract(self, stego_type: str, file_bytes: bytes) -> bytes:
+        """
+        אותו דבר בדיוק, רק לצורך חילוץ המידע מהקובץ.
+        """
+        if stego_type == "image":
+            return self._image_engine.extract(file_bytes)
+        elif stego_type == "audio":
+            return self._audio_engine.extract(file_bytes)
+        elif stego_type == "text":
+            return self._text_engine.extract(file_bytes)
+        else:
+            raise ValueError(f"Unsupported stego type: {stego_type}")
+
+
+# application/users/user_service.py
+from datetime import datetime, timezone
+
+from domain.entities.user import User
+from domain.interfaces.user_repository import UserRepository
+from domain.exceptions import (
+    DomainError,
+    UserAlreadyExistsError,
+    UserNotFoundError,
+    InvalidCredentialsError,
+)
+
+
+class UserService:
+
+    def __init__(self, user_repository: UserRepository):
+        self._user_repository = user_repository
+
+    def register(self, email: str, password: str) -> User:
+        if not email or not password:
+            raise ValueError("Email and password are required")
+
+        existing_user = self._user_repository.get_by_email(email)
+        if existing_user:
+            raise UserAlreadyExistsError("User already exists")
+
+        user = User(
+            id=None,
+            email=email,
+            password_hash=password,
+            created_at=datetime.now(timezone.utc),
+        )
+
+        return self._user_repository.save(user)
+
+    def get_by_email(self, email: str) -> User | None:
+        return self._user_repository.get_by_email(email)
+
+    def login(self, email: str, password: str) -> User:
+        user = self._user_repository.get_by_email(email)
+        if not user:
+            raise UserNotFoundError("User not found")
+
+        is_valid = self._user_repository.verify_password(email, password)
+        if not is_valid:
+            raise InvalidCredentialsError("Invalid credentials")
+
+        return user
+
+    def get_by_id(self, user_id: int) -> User | None:
+        return self._user_repository.get_by_id(user_id)
+
+
+# application/key_management/key_service.py
+import os
+
+from domain.crypto.kdf_engine import KDFEngine
+from domain.crypto.key_wrapper import KeyWrapper
+from domain.exceptions import InvalidPasswordError
+
+
+class KeyService:
+    SALT_SIZE = 16  # 128-bit salt
+    DEK_SIZE = 32  # AES-256
+
+    @staticmethod
+    def generate_file_keys(password: bytes) -> tuple[bytes, bytes, bytes]:
+        if not password:
+            raise InvalidPasswordError("Password cannot be empty")
+
+        salt = os.urandom(KeyService.SALT_SIZE)
+        kek = KDFEngine.derive_key(password, salt)
+
+        dek = os.urandom(KeyService.DEK_SIZE)
+        wrapped_dek = KeyWrapper.wrap(dek, kek)
+
+        return dek, wrapped_dek, salt
+
+    @staticmethod
+    def unwrap_file_key(
+        password: bytes,
+        wrapped_dek: bytes,
+        salt: bytes,
+    ) -> bytes:
+        if not password:
+            raise InvalidPasswordError("Password cannot be empty")
+
+        kek = KDFEngine.derive_key(password, salt)
+        dek = KeyWrapper.unwrap(wrapped_dek, kek)
+
+        return dek
+
+
+# application/messages/list_inbox_use_case.py
+from typing import List
+
+from domain.entities.message import Message
+from domain.interfaces.message_repository import MessageRepository
+
+
+class ListInboxUseCase:
+
+    def __init__(self, repository: MessageRepository):
+        self._repository = repository
+
+    def execute(self, recipient_id: int) -> List[Message]:
+        return self._repository.list_for_recipient(recipient_id)
+
+
+# application/messages/mark_read_use_case.py
+from datetime import datetime, timezone
+from uuid import UUID
+
+from domain.interfaces.message_repository import MessageRepository
+
+
+class MarkReadUseCase:
+
+    def __init__(self, repository: MessageRepository):
+        self._repository = repository
+
+    def execute(self, message_id: UUID, current_user_id: int):
+        message = self._repository.get_by_id(message_id)
+
+        if not message:
+            raise ValueError("Message not found")
+
+        if message.recipient_id != current_user_id:
+            raise PermissionError("Not allowed to mark this message as read")
+
+        message.mark_read(datetime.now(timezone.utc))
+
+        self._repository.update(message)
+
+        return message
+
+
+# application/files/embed_use_case.py
+from domain.exceptions import DomainError
+
+
+class EmbedUseCase:
+    def __init__(self, key_service, aes_engine, stego_engine):
+        self._key_service = key_service
+        self._aes_engine = aes_engine
+        self._stego_engine = stego_engine
+
+    def execute(
+        self,
+        audio_bytes: bytes,
+        payload_bytes: bytes,
+        password: bytes,
+    ) -> tuple[bytes, bytes, bytes]:
+        """
+        Returns:
+            stego_audio,
+            wrapped_dek,
+            salt
+        """
+
+        # 1️⃣ Generate keys
+        dek, wrapped_dek, salt = self._key_service.generate_file_keys(password)
+
+        # 2️⃣ Encrypt payload
+        encrypted_payload = self._aes_engine.encrypt(payload_bytes, dek)
+
+        # 3️⃣ Embed encrypted payload into audio
+        stego_audio = self._stego_engine.embed(audio_bytes, encrypted_payload)
+
+        return stego_audio, wrapped_dek, salt
+
+
+# application/auth/jwt_service.py
+from datetime import datetime, timedelta, timezone
+from jose import jwt, JWTError
+
+from core.config import (
+    JWT_SECRET,
+    JWT_ALGORITHM,
+    JWT_EXP_MINUTES,
+)
+
+
+class JWTService:
+
+    @staticmethod
+    def create_token(user_id: int, email: str) -> str:
+        expire = datetime.now(timezone.utc) + timedelta(minutes=JWT_EXP_MINUTES)
+
+        payload = {
+            "sub": str(user_id),
+            "email": email,
+            "exp": expire,
+        }
+
+        return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+    @staticmethod
+    def verify_token(token: str) -> dict:
+        try:
+            payload = jwt.decode(
+                token,
+                JWT_SECRET,
+                algorithms=[JWT_ALGORITHM],
+            )
+            return payload
+        except JWTError:
+            raise ValueError("Invalid or expired token")
+
+
+# application/messages/download_message_use_case.py
+from datetime import datetime, timezone
+from uuid import UUID
+
+from domain.interfaces.message_repository import MessageRepository
+from domain.exceptions import DomainError
+
+
+class DownloadMessageUseCase:
+
+    def __init__(self, repository: MessageRepository):
+        self._repository = repository
+
+    def execute(self, message_id: UUID, current_user_id: int):
+        message = self._repository.get_by_id(message_id)
+
+        if not message:
+            raise ValueError("Message not found")
+
+        if message.recipient_id != current_user_id:
+            raise PermissionError("Not allowed to download this message")
+
+        message.mark_delivered(datetime.now(timezone.utc))
+
+        self._repository.update(message)
+
+        return message
+
+
+# application/auth/auth_service.py
+# (empty)
+
+
+# application/messages/send_message_use_case.py
+from datetime import datetime, timezone
+from uuid import uuid4
+from domain.enums.stego_type import StegoType
+from domain.entities.message import Message
+from domain.enums.message_status import MessageStatus
+from domain.interfaces.message_repository import MessageRepository
+
+
+class SendMessageUseCase:
+
+    def __init__(self, repository: MessageRepository):
+        self._repository = repository
+
+    def execute(
+        self,
+        sender_id: int,
+        recipient_id: int,
+        file_path: str,
+        file_hash: str,
+        stego_type: StegoType,
+        key_version: int,
+    ) -> Message:
+
+        message = Message(
+            id=uuid4(),
+            sender_id=sender_id,
+            recipient_id=recipient_id,
+            file_path=file_path,
+            file_hash=file_hash,
+            stego_type=stego_type,
+            key_version=key_version,
+            status=MessageStatus.SENT,
+            created_at=datetime.now(timezone.utc),
+            delivered_at=None,
+            read_at=None,
+        )
+
+        return self._repository.save(message)
+
+
+# application/files/extract_use_case.py
+class ExtractUseCase:
+    def __init__(self, key_service, aes_engine, stego_engine):
+        self._key_service = key_service
+        self._aes_engine = aes_engine
+        self._stego_engine = stego_engine
+
+    def execute(
+        self,
+        stego_audio: bytes,
+        password: bytes,
+        wrapped_dek: bytes,
+        salt: bytes,
+    ) -> bytes:
+        """
+        Returns:
+            decrypted payload (original plaintext bytes)
+        """
+
+        # 1️⃣ Extract encrypted payload from audio
+        encrypted_payload = self._stego_engine.extract(stego_audio)
+
+        # 2️⃣ Reconstruct DEK
+        dek = self._key_service.unwrap_file_key(
+            password,
+            wrapped_dek,
+            salt,
+        )
+
+        # 3️⃣ Decrypt
+        plaintext = self._aes_engine.decrypt(encrypted_payload, dek)
+
+        return plaintext
+
+
+# application/files/share_use_case.py
+# (empty)
+
+
+# application/files/revoke_share_use_case.py
+# (empty)
+
+=====================================================
+FILE: docker-compose.yml
+=====================================================
+services:
+  db:
+    image: postgres:15
+    container_name: cryptofile_db
+    restart: always
+    environment:
+      POSTGRES_USER: cryptofile
+      POSTGRES_PASSWORD: cryptofile
+      POSTGRES_DB: cryptofile
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  api:
+    build: .
+    container_name: cryptofile_api
+    depends_on:
+      - db
+    volumes:
+      - .:/app
+      - ./uploads:/app/uploads  
+    environment:
+      DATABASE_URL: postgresql+psycopg2://cryptofile:cryptofile@db:5432/cryptofile
+      JWT_SECRET: supersecret
+    ports:
+      - "8000:8000"
+    command: >
+      sh -c "
+      sleep 5 &&
+      uvicorn main:app --host 0.0.0.0 --port 8000
+      "
+
+volumes:
+  postgres_data:
+
+=====================================================
+FILE: Dockerfile
+=====================================================
+# ---------- Base image ----------
+FROM python:3.11-slim
+
+# ---------- System setup ----------
+WORKDIR /app
+
+# Avoid .pyc files
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# ---------- Install dependencies ----------
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# ---------- Copy project ----------
+COPY src ./src
+
+WORKDIR /app/src
+
+# ---------- Run server ----------
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+=====================================================
+FILE: requirements.txt
+=====================================================
+fastapi
+uvicorn[standard]
+sqlalchemy
+pydantic
+python-jose[cryptography]
+passlib[bcrypt]
+cryptography
+pillow
+numpy
+psycopg2-binary==2.9.9
+python-multipart
+
+=====================================================
+FILE: requirements-dev.txt
+=====================================================
+pytest
+pytest-cov
+black
+ruff
+isort
+
+=====================================================
+FILE: src/main.py
+=====================================================
+from fastapi import FastAPI
+from presentation.routes import auth_routes, user_routes, stego_routes
+from infrastructure.db.session import engine
+from infrastructure.db.models import Base
+
+app = FastAPI(
+    title="CryptoFile API",
+    description="מערכת להעברת הודעות מאובטחת באמצעות סטגנוגרפיה בתמונות, אודיו וטקסט",
+    version="1.0.0",
+)
+Base.metadata.create_all(bind=engine)
+
+# רישום ה-Routers של המערכת
+app.include_router(auth_routes.router)
+app.include_router(user_routes.router)
+
+# כאן אנחנו מחברים את הנתיב החדש שיצרת!
+app.include_router(stego_routes.router)
+
+
+@app.get("/")
+async def root():
+    return {"message": "Welcome to CryptoFile API - Steganography Engine is Ready!"}
+
+=====================================================
+FILE: src/requirements.txt
+=====================================================
+annotated-doc==0.0.4
+annotated-types==0.7.0
+anyio==4.12.1
+bcrypt==5.0.0
+cffi==2.0.0
+click==8.3.1
+colorama==0.4.6
+cryptography==46.0.5
+ecdsa==0.19.1
+fastapi==0.129.2
+greenlet==3.3.2
+h11==0.16.0
+idna==3.11
+iniconfig==2.3.0
+numpy==2.4.2
+packaging==26.0
+pillow==12.1.1
+pluggy==1.6.0
+pyasn1==0.6.2
+pycparser==3.0
+pydantic==2.12.5
+pydantic_core==2.41.5
+Pygments==2.19.2
+pytest==9.0.2
+python-jose==3.5.0
+rsa==4.9.1
+six==1.17.0
+SQLAlchemy==2.0.46
+starlette==0.52.1
+typing-inspection==0.4.2
+typing_extensions==4.15.0
+uvicorn==0.41.0
+
+=====================================================
+FILE: src/application/__init__.py
+=====================================================
+(empty file)
+
+=====================================================
+FILE: src/application/auth/auth_service.py
+=====================================================
+(empty file)
+
+=====================================================
+FILE: src/application/auth/jwt_service.py
+=====================================================
+from datetime import datetime, timedelta, timezone
+from jose import jwt, JWTError
+
+from core.config import (
+    JWT_SECRET,
+    JWT_ALGORITHM,
+    JWT_EXP_MINUTES,
+)
+
+
+class JWTService:
+
+    @staticmethod
+    def create_token(user_id: int, email: str) -> str:
+        expire = datetime.now(timezone.utc) + timedelta(minutes=JWT_EXP_MINUTES)
+
+        payload = {
+            "sub": str(user_id),
+            "email": email,
+            "exp": expire,
+        }
+
+        return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+    @staticmethod
+    def verify_token(token: str) -> dict:
+        try:
+            payload = jwt.decode(
+                token,
+                JWT_SECRET,
+                algorithms=[JWT_ALGORITHM],
+            )
+            return payload
+        except JWTError:
+            raise ValueError("Invalid or expired token")
+
+=====================================================
+FILE: src/application/files/embed_use_case.py
+=====================================================
+from domain.interfaces.stego_engine import StegoEngine
+
+
+class EmbedUseCase:
+    def __init__(self, key_service, aes_engine, stego_engine: StegoEngine):
+        self._key_service = key_service
+        self._aes_engine = aes_engine
+        self._stego_engine = stego_engine
+
+    def execute(
+        self,
+        cover_bytes: bytes,
+        payload_bytes: bytes,
+        password: bytes,
+    ) -> tuple[bytes, bytes, bytes]:
+        """
+        Returns:
+            stego_file,
+            wrapped_dek,
+            salt
+        """
+
+        # 1️⃣ Generate keys
+        dek, wrapped_dek, salt = self._key_service.generate_file_keys(password)
+
+        # 2️⃣ Build AAD (bind ciphertext to wrapped_dek)
+        aad = wrapped_dek
+
+        # 3️⃣ Encrypt payload with AAD
+        encrypted_payload = self._aes_engine.encrypt(
+            payload_bytes,
+            dek,
+            aad=aad,
+        )
+
+        # 4️⃣ Embed encrypted payload
+        stego_file = self._stego_engine.embed(
+            cover_bytes,
+            encrypted_payload,
+        )
+
+        return stego_file, wrapped_dek, salt
+
+=====================================================
+FILE: src/application/files/extract_use_case.py
+=====================================================
+from domain.interfaces.stego_engine import StegoEngine
+
+
+class ExtractUseCase:
+    def __init__(self, key_service, aes_engine, stego_engine: StegoEngine):
+        self._key_service = key_service
+        self._aes_engine = aes_engine
+        self._stego_engine = stego_engine
+
+    def execute(
+        self,
+        stego_bytes: bytes,
+        password: bytes,
+        wrapped_dek: bytes,
+        salt: bytes,
+    ) -> bytes:
+        """
+        Returns:
+            decrypted payload (original plaintext bytes)
+        """
+
+        # 1️⃣ Extract encrypted payload
+        encrypted_payload = self._stego_engine.extract(stego_bytes)
+
+        # 2️⃣ Reconstruct DEK
+        dek = self._key_service.unwrap_file_key(
+            password,
+            wrapped_dek,
+            salt,
+        )
+
+        # 3️⃣ Build AAD (must match EmbedUseCase)
+        aad = wrapped_dek
+
+        # 4️⃣ Decrypt with AAD
+        plaintext = self._aes_engine.decrypt(
+            encrypted_payload,
+            dek,
+            aad=aad,
+        )
+
+        return plaintext
+
+=====================================================
+FILE: src/application/files/share_use_case.py
+=====================================================
+(empty file)
+
+=====================================================
+FILE: src/application/files/revoke_share_use_case.py
+=====================================================
+(empty file)
+
+=====================================================
+FILE: src/application/users/__init__.py
+=====================================================
+(empty file)
+
+=====================================================
+FILE: src/application/users/user_service.py
+=====================================================
+from datetime import datetime, timezone
+import bcrypt
+
+from domain.entities.user import User
+from domain.interfaces.user_repository import UserRepository
+from domain.exceptions import (
+    UserAlreadyExistsError,
+    UserNotFoundError,
+    InvalidCredentialsError,
+)
+
+
+class UserService:
+
+    def __init__(self, user_repository: UserRepository):
+        self._user_repository = user_repository
+
+    def register(self, email: str, password: str) -> User:
+        if not email or not password:
+            raise ValueError("Email and password are required")
+
+        existing_user = self._user_repository.get_by_email(email)
+        if existing_user:
+            raise UserAlreadyExistsError("User already exists")
+
+        hashed_password = self._hash_password(password)
+
+        user = User(
+            id=None,
+            email=email,
+            password_hash=hashed_password,
+            created_at=datetime.now(timezone.utc),
+        )
+
+        return self._user_repository.save(user)
+
+    def get_by_email(self, email: str) -> User | None:
+        return self._user_repository.get_by_email(email)
+
+    def login(self, email: str, password: str) -> User:
+        user = self._user_repository.get_by_email(email)
+        if not user:
+            raise UserNotFoundError("User not found")
+
+        if not self._verify_password(password, user.password_hash):
+            raise InvalidCredentialsError("Invalid credentials")
+
+        return user
+
+    def get_by_id(self, user_id: int) -> User | None:
+        return self._user_repository.get_by_id(user_id)
+
+    def _hash_password(self, password: str) -> str:
+        return bcrypt.hashpw(
+            password.encode("utf-8"),
+            bcrypt.gensalt(),
+        ).decode("utf-8")
+
+    def _verify_password(self, password: str, hashed_password: str) -> bool:
+        return bcrypt.checkpw(
+            password.encode("utf-8"),
+            hashed_password.encode("utf-8"),
+        )
+
+=====================================================
+FILE: src/application/key_management/key_service.py
+=====================================================
+import os
+
+from domain.crypto.kdf_engine import KDFEngine
+from domain.crypto.key_wrapper import KeyWrapper
+from domain.exceptions import InvalidPasswordError
+
+
+class KeyService:
+    SALT_SIZE = 16  # 128-bit salt
+    DEK_SIZE = 32  # AES-256
+
+    @staticmethod
+    def generate_file_keys(password: bytes) -> tuple[bytes, bytes, bytes]:
+        if not password:
+            raise InvalidPasswordError("Password cannot be empty")
+
+        salt = os.urandom(KeyService.SALT_SIZE)
+        kek = KDFEngine.derive_key(password, salt)
+
+        dek = os.urandom(KeyService.DEK_SIZE)
+        wrapped_dek = KeyWrapper.wrap(dek, kek)
+
+        return dek, wrapped_dek, salt
+
+    @staticmethod
+    def unwrap_file_key(
+        password: bytes,
+        wrapped_dek: bytes,
+        salt: bytes,
+    ) -> bytes:
+        if not password:
+            raise InvalidPasswordError("Password cannot be empty")
+
+        kek = KDFEngine.derive_key(password, salt)
+        dek = KeyWrapper.unwrap(wrapped_dek, kek)
+
+        return dek
+
+=====================================================
+FILE: src/application/messages/list_inbox_use_case.py
+=====================================================
+from typing import List
+
+from domain.entities.message import Message
+from domain.interfaces.message_repository import MessageRepository
+
+
+class ListInboxUseCase:
+
+    def __init__(self, repository: MessageRepository):
+        self._repository = repository
+
+    def execute(self, recipient_id: int) -> List[Message]:
+        return self._repository.list_for_recipient(recipient_id)
+
+=====================================================
+FILE: src/application/messages/mark_read_use_case.py
+=====================================================
+from datetime import datetime, timezone
+from uuid import UUID
+
+from domain.interfaces.message_repository import MessageRepository
+from domain.exceptions import DomainError
+
+
+class MarkReadUseCase:
+
+    def __init__(self, repository: MessageRepository):
+        self._repository = repository
+
+    def execute(self, message_id: UUID, current_user_id: int):
+        message = self._repository.get_by_id(message_id)
+
+        if not message:
+            raise DomainError("Message not found")
+
+        if message.recipient_id != current_user_id:
+            raise DomainError("Not allowed to mark this message as read")
+
+        message.mark_read(datetime.now(timezone.utc))
+
+        self._repository.update(message)
+
+        return message
+
+=====================================================
+FILE: src/application/messages/send_message_use_case.py
+=====================================================
+from datetime import datetime, timezone
+from uuid import uuid4
+from domain.enums.stego_type import StegoType
+from domain.entities.message import Message
+from domain.enums.message_status import MessageStatus
+from domain.interfaces.message_repository import MessageRepository
+
+
+class SendMessageUseCase:
+
+    def __init__(self, repository: MessageRepository):
+        self._repository = repository
+
+    def execute(
+        self,
+        sender_id: int,
+        recipient_id: int,
+        file_path: str,
+        file_hash: str,
+        stego_type: StegoType,
+        key_version: int,
+    ) -> Message:
+
+        message = Message(
+            id=uuid4(),
+            sender_id=sender_id,
+            recipient_id=recipient_id,
+            file_path=file_path,
+            file_hash=file_hash,
+            stego_type=stego_type,
+            key_version=key_version,
+            status=MessageStatus.SENT,
+            created_at=datetime.now(timezone.utc),
+            delivered_at=None,
+            read_at=None,
+        )
+
+        return self._repository.save(message)
+
+=====================================================
+FILE: src/application/messages/download_message_use_case.py
+=====================================================
+from datetime import datetime, timezone
+from uuid import UUID
+
+from domain.interfaces.message_repository import MessageRepository
+from domain.exceptions import DomainError
+
+
+class DownloadMessageUseCase:
+
+    def __init__(self, repository: MessageRepository):
+        self._repository = repository
+
+    def execute(self, message_id: UUID, current_user_id: int):
+        message = self._repository.get_by_id(message_id)
+
+        if not message:
+            raise DomainError("Message not found")
+
+        if message.recipient_id != current_user_id:
+            raise DomainError("Not allowed to download this message")
+
+        message.mark_delivered(datetime.now(timezone.utc))
+
+        self._repository.update(message)
+
+        return message
+
+=====================================================
+FILE: src/core/config.py
+=====================================================
+import os
+
+JWT_SECRET = os.getenv("JWT_SECRET")
+JWT_ALGORITHM = "HS256"
+JWT_EXP_MINUTES = 60  # <-- השם הזה חייב להיות תואם ל-jwt_service
+
+if not JWT_SECRET:
+    raise RuntimeError("JWT_SECRET environment variable must be set")
+
+=====================================================
+FILE: src/core/logging.py
+=====================================================
+(empty file)
+
+=====================================================
+FILE: src/core/security.py
+=====================================================
+(empty file)
+
+=====================================================
+FILE: src/domain/__init__.py
+=====================================================
+(empty file)
+
+=====================================================
+FILE: src/domain/exceptions.py
+=====================================================
+class DomainError(Exception):
+    pass
+
+
+class UnsupportedAudioFormatError(DomainError):
+    pass
+
+
+class PayloadTooLargeError(DomainError):
+    pass
+
+
+class CorruptedPayloadError(DomainError):
+    pass
+
+
+class InvalidPasswordError(DomainError):
+    pass
+
+
+class InvalidSaltError(DomainError):
+    pass
+
+
+class InvalidWrappedKeyError(DomainError):
+    pass
+
+
+class InvalidKeyLengthError(DomainError):
+    pass
+
+
+class DecryptionFailedError(DomainError):
+    pass
+
+
+class UserNotFoundError(DomainError):
+    pass
+
+
+class InvalidCredentialsError(DomainError):
+    pass
+
+
+class UserAlreadyExistsError(DomainError):
+    pass
+
+=====================================================
+FILE: src/domain/enums/stego_type.py
+=====================================================
+from enum import Enum
+
+
+class StegoType(str, Enum):
+    AUDIO = "audio"
+    IMAGE = "image"
+    TEXT = "text"
+
+=====================================================
+FILE: src/domain/enums/message_status.py
+=====================================================
+from enum import Enum
+
+
+class MessageStatus(str, Enum):
+    SENT = "SENT"
+    DELIVERED = "DELIVERED"
+    READ = "READ"
+
+=====================================================
+FILE: src/domain/entities/__init__.py
+=====================================================
+(empty file)
+
+=====================================================
+FILE: src/domain/entities/user.py
+=====================================================
+from dataclasses import dataclass
+from datetime import datetime
+
+
+@dataclass
+class User:
+    id: int | None
+    email: str
+    password_hash: str
+    created_at: datetime
+
+=====================================================
+FILE: src/domain/entities/file.py
+=====================================================
+(empty file)
+
+=====================================================
+FILE: src/domain/entities/file_version.py
+=====================================================
+(empty file)
+
+=====================================================
+FILE: src/domain/entities/message.py
+=====================================================
+from datetime import datetime
+from typing import Optional
+from uuid import UUID
+from domain.enums.stego_type import StegoType
+from domain.enums.message_status import MessageStatus
+from domain.exceptions import DomainError
+
+
+class Message:
+    def __init__(
+        self,
+        id: UUID,
+        sender_id: int,
+        recipient_id: int,
+        file_path: str,
+        file_hash: str,
+        stego_type: StegoType,
+        key_version: int,
+        status: MessageStatus,
+        created_at: datetime,
+        delivered_at: Optional[datetime] = None,
+        read_at: Optional[datetime] = None,
+    ):
+        self.id = id
+        self.sender_id = sender_id
+        self.recipient_id = recipient_id
+        self.file_path = file_path
+        self.file_hash = file_hash
+        self.stego_type = stego_type
+        self.key_version = key_version
+        self.status = status
+        self.created_at = created_at
+        self.delivered_at = delivered_at
+        self.read_at = read_at
+
+    # -----------------------
+    # Domain Logic
+    # -----------------------
+
+    def mark_delivered(self, now: datetime) -> None:
+        if self.status == MessageStatus.READ:
+            raise DomainError("Cannot mark READ message as DELIVERED")
+
+        if self.status == MessageStatus.DELIVERED:
+            return  # idempotent
+
+        if self.status != MessageStatus.SENT:
+            raise DomainError("Invalid state transition to DELIVERED")
+
+        self.status = MessageStatus.DELIVERED
+        self.delivered_at = now
+
+    def mark_read(self, now: datetime) -> None:
+        if self.status == MessageStatus.READ:
+            return  # idempotent
+
+        # If message was not delivered yet, mark delivered first
+        if self.status == MessageStatus.SENT:
+            self.mark_delivered(now)
+
+        if self.status != MessageStatus.DELIVERED:
+            raise DomainError("Invalid state transition to READ")
+
+        self.status = MessageStatus.READ
+        self.read_at = now
+
+=====================================================
+FILE: src/domain/entities/trusted_relation.py
+=====================================================
+(empty file)
+
+=====================================================
+FILE: src/domain/crypto/aes_engine.py
+=====================================================
+import os
+
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
+from domain.exceptions import (
+    InvalidKeyLengthError,
+    DecryptionFailedError,
+)
+
+
+class AESEngine:
+    KEY_SIZE = 32  # 256-bit
+    NONCE_SIZE = 12  # 96-bit for GCM (recommended)
+
+    def encrypt(
+        self,
+        plaintext: bytes,
+        key: bytes,
+        aad: bytes | None = None,
+    ) -> bytes:
+        if len(key) != self.KEY_SIZE:
+            raise InvalidKeyLengthError()
+
+        nonce = os.urandom(self.NONCE_SIZE)
+
+        aesgcm = AESGCM(key)
+        ciphertext = aesgcm.encrypt(nonce, plaintext, aad)
+
+        # We prepend nonce so it can be used during decryption
+        return nonce + ciphertext
+
+    def decrypt(
+        self,
+        encrypted_data: bytes,
+        key: bytes,
+        aad: bytes | None = None,
+    ) -> bytes:
+        if len(key) != self.KEY_SIZE:
+            raise InvalidKeyLengthError()
+
+        if len(encrypted_data) < self.NONCE_SIZE:
+            raise DecryptionFailedError()
+
+        nonce = encrypted_data[: self.NONCE_SIZE]
+        ciphertext = encrypted_data[self.NONCE_SIZE :]
+
+        aesgcm = AESGCM(key)
+
+        try:
+            return aesgcm.decrypt(nonce, ciphertext, aad)
+        except Exception:
+            # Any failure (tag mismatch, tampering, wrong key, wrong AAD)
+            raise DecryptionFailedError()
+
+=====================================================
+FILE: src/domain/crypto/kdf_engine.py
+=====================================================
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.backends import default_backend
+
+from domain.exceptions import (
+    InvalidSaltError,
+    InvalidPasswordError,
+)
+
+
+class KDFEngine:
+    """
+    Derives a 32-byte KEK from a password using PBKDF2-HMAC-SHA256.
+    Pure domain logic.
+    """
+
+    KEY_LENGTH = 32  # AES-256
+    ITERATIONS = 200_000  # Secure baseline
+
+    @staticmethod
+    def derive_key(password: bytes, salt: bytes) -> bytes:
+        if not password:
+            raise InvalidPasswordError("Password cannot be empty")
+
+        if not salt or len(salt) < 16:
+            raise InvalidSaltError("Salt must be at least 16 bytes")
+
+        kdf = PBKDF2HMAC(
+            algorithm=hashes.SHA256(),
+            length=KDFEngine.KEY_LENGTH,
+            salt=salt,
+            iterations=KDFEngine.ITERATIONS,
+            backend=default_backend(),
+        )
+
+        return kdf.derive(password)
+
+=====================================================
+FILE: src/domain/crypto/key_wrapper.py
+=====================================================
+from domain.crypto.aes_engine import AESEngine
+from domain.exceptions import (
+    InvalidKeyLengthError,
+    DecryptionFailedError,
+    InvalidWrappedKeyError,
+)
+
+
+class KeyWrapper:
+    """
+    Wraps and unwraps DEKs using KEK (AES-256-GCM).
+    Pure domain logic.
+    """
+
+    DEK_LENGTH = 32  # AES-256
+
+    @staticmethod
+    def wrap(dek: bytes, kek: bytes) -> bytes:
+        if not dek or len(dek) != KeyWrapper.DEK_LENGTH:
+            raise InvalidKeyLengthError("DEK must be 32 bytes")
+
+        engine = AESEngine()
+        return engine.encrypt(dek, kek)
+
+    @staticmethod
+    def unwrap(wrapped_dek: bytes, kek: bytes) -> bytes:
+        if not wrapped_dek:
+            raise InvalidWrappedKeyError("Wrapped key cannot be empty")
+
+        try:
+            engine = AESEngine()
+            dek = engine.decrypt(wrapped_dek, kek)
+        except DecryptionFailedError:
+            raise DecryptionFailedError("Failed to unwrap DEK")
+
+        if len(dek) != KeyWrapper.DEK_LENGTH:
+            raise InvalidKeyLengthError("Unwrapped DEK is invalid length")
+
+        return dek
+
+=====================================================
+FILE: src/domain/value_objects/file_id.py
+=====================================================
+(empty file)
+
+=====================================================
+FILE: src/domain/value_objects/user_id.py
+=====================================================
+(empty file)
+
+=====================================================
+FILE: src/domain/value_objects/version_id.py
+=====================================================
+(empty file)
+
+=====================================================
+FILE: src/domain/value_objects/wrapped_key.py
+=====================================================
+(empty file)
+
+=====================================================
+FILE: src/domain/interfaces/__init__.py
+=====================================================
+(empty file)
+
+=====================================================
+FILE: src/domain/interfaces/file_repository.py
+=====================================================
+(empty file)
+
+=====================================================
+FILE: src/domain/interfaces/file_key_repository.py
+=====================================================
+(empty file)
+
+=====================================================
+FILE: src/domain/interfaces/message_repository.py
+=====================================================
+from abc import ABC, abstractmethod
+from typing import List
+from uuid import UUID
+
+from domain.entities.message import Message
+
+
+class MessageRepository(ABC):
+
+    @abstractmethod
+    def save(self, message: Message) -> Message:
+        pass
+
+    @abstractmethod
+    def get_by_id(self, message_id: UUID) -> Message | None:
+        pass
+
+    @abstractmethod
+    def list_for_recipient(self, recipient_id: int) -> List[Message]:
+        pass
+
+    @abstractmethod
+    def update(self, message: Message) -> Message:
+        pass
+
+=====================================================
+FILE: src/domain/interfaces/stego_engine.py
+=====================================================
+from abc import ABC, abstractmethod
+
+
+class StegoEngine(ABC):
+
+    @abstractmethod
+    def embed(self, cover_bytes: bytes, payload: bytes) -> bytes:
+        pass
+
+    @abstractmethod
+    def extract(self, stego_bytes: bytes) -> bytes:
+        pass
+
+=====================================================
+FILE: src/domain/interfaces/storage_interface.py
+=====================================================
+from abc import ABC, abstractmethod
+
+class StorageInterface(ABC):
+    @abstractmethod
+    def save(self, file_bytes: bytes, filename: str) -> str:
+        pass
+
+    @abstractmethod
+    def get_path(self, filename: str) -> str:
+        pass
+
+=====================================================
+FILE: src/domain/interfaces/trusted_repository.py
+=====================================================
+(empty file)
+
+=====================================================
+FILE: src/domain/interfaces/user_repository.py
+=====================================================
+from abc import ABC, abstractmethod
+from domain.entities.user import User
+
+
+class UserRepository(ABC):
+
+    @abstractmethod
+    def get_by_email(self, email: str) -> User | None:
+        pass
+
+    @abstractmethod
+    def save(self, user: User) -> User:
+        pass
+
+    @abstractmethod
+    def get_by_id(self, user_id: int) -> User | None:
+        pass
+
+=====================================================
+FILE: src/infrastructure/__init__.py
+=====================================================
+(empty file)
+
+=====================================================
+FILE: src/infrastructure/db/__init__.py
+=====================================================
+(empty file)
+
+=====================================================
+FILE: src/infrastructure/db/session.py
+=====================================================
+import os
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, DeclarativeBase
+
+ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
+
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+# Allow SQLite fallback ONLY for tests
+if not DATABASE_URL:
+    if ENVIRONMENT == "test":
+        DATABASE_URL = "sqlite:///./test.db"
+    else:
+        raise RuntimeError("DATABASE_URL must be set")
+
+engine = create_engine(
+    DATABASE_URL,
+    pool_pre_ping=True,
+)
+
+SessionLocal = sessionmaker(
+    bind=engine,
+    autoflush=False,
+    autocommit=False,
+)
+
+
+class Base(DeclarativeBase):
+    pass
+
+=====================================================
+FILE: src/infrastructure/db/models.py
+=====================================================
+from sqlalchemy import String, DateTime, Integer
+from sqlalchemy.orm import Mapped, mapped_column
+from datetime import datetime, timezone
+
+...
+default = (lambda: datetime.now(timezone.utc),)
+
+from infrastructure.db.session import Base
+
+
+class UserModel(Base):
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(
+        Integer,
+        primary_key=True,
+        index=True,
+    )
+
+    email: Mapped[str] = mapped_column(
+        String(255),
+        unique=True,
+        index=True,
+        nullable=False,
+    )
+
+    password_hash: Mapped[str] = mapped_column(
+        String(255),
+        nullable=False,
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+
+=====================================================
+FILE: src/infrastructure/db/init_db.py
+=====================================================
+from infrastructure.db.session import engine, Base
+from infrastructure.db import models
+
+Base.metadata.create_all(bind=engine)
+
+=====================================================
+FILE: src/infrastructure/db/repositories/user_repository_impl.py
+=====================================================
+from sqlalchemy.orm import Session
+
+from domain.entities.user import User
+from domain.interfaces.user_repository import UserRepository
+from infrastructure.db.models import UserModel
+
+
+class UserRepositoryImpl(UserRepository):
+
+    def __init__(self, session: Session):
+        self._session = session
+
+    def get_by_email(self, email: str) -> User | None:
+        model = self._session.query(UserModel).filter(UserModel.email == email).first()
+
+        if not model:
+            return None
+
+        return self._to_entity(model)
+
+    def save(self, user: User) -> User:
+        # Repository לא מבצע hashing!
+        model = UserModel(
+            email=user.email,
+            password_hash=user.password_hash,
+        )
+
+        self._session.add(model)
+        self._session.commit()
+        self._session.refresh(model)
+
+        return self._to_entity(model)
+
+    def get_by_id(self, user_id: int) -> User | None:
+        model = self._session.query(UserModel).filter(UserModel.id == user_id).first()
+
+        if not model:
+            return None
+
+        return self._to_entity(model)
+
+    def _to_entity(self, model: UserModel) -> User:
+        return User(
+            id=model.id,
+            email=model.email,
+            password_hash=model.password_hash,
+            created_at=model.created_at,
+        )
+
+=====================================================
+FILE: src/infrastructure/db/repositories/file_repository_impl.py
+=====================================================
+(empty file)
+
+=====================================================
+FILE: src/infrastructure/db/repositories/file_key_repository_impl.py
+=====================================================
+(empty file)
+
+=====================================================
+FILE: src/infrastructure/db/repositories/trusted_repository_impl.py
+=====================================================
+(empty file)
+
+=====================================================
+FILE: src/infrastructure/logging/audit_logger.py
+=====================================================
+(empty file)
+
+=====================================================
+FILE: src/infrastructure/stego/factory.py
+=====================================================
+from domain.enums.stego_type import StegoType
+from domain.interfaces.stego_engine import StegoEngine
+
+from infrastructure.stego.audio_engine import AudioStegoEngine
+from infrastructure.stego.image_engine import ImageStegoEngine
+from infrastructure.stego.text_engine import TextStegoEngine
+
+
+class StegoFactory:
+
+    _engines = {
+        StegoType.AUDIO: AudioStegoEngine,
+        StegoType.IMAGE: ImageStegoEngine,
+        StegoType.TEXT: TextStegoEngine,
+    }
+
+    @classmethod
+    def get_engine(cls, stego_type: StegoType) -> StegoEngine:
+        try:
+            return cls._engines[stego_type]()
+        except KeyError:
+            raise ValueError(f"Unsupported stego type: {stego_type}")
+
+=====================================================
+FILE: src/infrastructure/stego/stego_dispatcher.py
+=====================================================
+from domain.enums.stego_type import StegoType
+
+from infrastructure.stego.audio_engine import AudioStegoEngine
+from infrastructure.stego.image_engine import ImageStegoEngine
+from infrastructure.stego.text_engine import TextStegoEngine
+
+
+class StegoDispatcher:
+    def __init__(self):
+        self._image_engine = ImageStegoEngine()
+        self._audio_engine = AudioStegoEngine()
+        self._text_engine = TextStegoEngine()
+
+    def dispatch_embed(
+        self,
+        stego_type: StegoType,
+        file_bytes: bytes,
+        data: bytes,
+    ) -> bytes:
+        if stego_type == StegoType.IMAGE:
+            return self._image_engine.embed(file_bytes, data)
+
+        elif stego_type == StegoType.AUDIO:
+            return self._audio_engine.embed(file_bytes, data)
+
+        elif stego_type == StegoType.TEXT:
+            return self._text_engine.embed(file_bytes, data)
+
+        else:
+            raise ValueError(f"Unsupported stego type: {stego_type}")
+
+    def dispatch_extract(
+        self,
+        stego_type: StegoType,
+        file_bytes: bytes,
+    ) -> bytes:
+        if stego_type == StegoType.IMAGE:
+            return self._image_engine.extract(file_bytes)
+
+        elif stego_type == StegoType.AUDIO:
+            return self._audio_engine.extract(file_bytes)
+
+        elif stego_type == StegoType.TEXT:
+            return self._text_engine.extract(file_bytes)
+
+        else:
+            raise ValueError(f"Unsupported stego type: {stego_type}")
+
+=====================================================
+FILE: src/infrastructure/stego/audio_engine.py
+=====================================================
+import io
+import wave
+from domain.interfaces.stego_engine import StegoEngine
+from domain.exceptions import (
+    CorruptedPayloadError,
+    PayloadTooLargeError,
+    UnsupportedAudioFormatError,
+)
+
+
+class AudioStegoEngine(StegoEngine):
+    HEADER_BITS = 32  # 4 bytes length header
+
+    def embed(self, audio_bytes: bytes, encrypted_payload: bytes) -> bytes:
+        buffer = io.BytesIO(audio_bytes)
+
+        with wave.open(buffer, "rb") as wav:
+            if wav.getsampwidth() != 2:
+                raise UnsupportedAudioFormatError()
+
+            if wav.getcomptype() != "NONE":
+                raise UnsupportedAudioFormatError()
+
+            if wav.getnchannels() < 1:
+                raise UnsupportedAudioFormatError()
+
+            frames = wav.readframes(wav.getnframes())
+            params = wav.getparams()
+
+        samples = bytearray(frames)
+        total_samples = len(samples) // 2
+
+        # Must have enough samples to even store header
+        if total_samples < self.HEADER_BITS:
+            raise PayloadTooLargeError()
+
+        # Prepare payload with 4-byte length header
+        length_header = len(encrypted_payload).to_bytes(4, "big")
+        full_payload = length_header + encrypted_payload
+
+        max_payload_bytes = (total_samples // 8) - 4
+
+        if len(encrypted_payload) > max_payload_bytes:
+            raise PayloadTooLargeError()
+
+        # Convert payload to bits
+        payload_bits = []
+        for byte in full_payload:
+            for i in range(8):
+                payload_bits.append((byte >> (7 - i)) & 1)
+
+        # Embed bits into LSB of each sample
+        for i, bit in enumerate(payload_bits):
+            sample_byte_index = i * 2
+            samples[sample_byte_index] = (samples[sample_byte_index] & 0xFE) | bit
+
+        # Rebuild WAV
+        output_buffer = io.BytesIO()
+        with wave.open(output_buffer, "wb") as wav_out:
+            wav_out.setparams(params)
+            wav_out.writeframes(bytes(samples))
+
+        return output_buffer.getvalue()
+
+    def extract(self, audio_bytes: bytes) -> bytes:
+        buffer = io.BytesIO(audio_bytes)
+
+        with wave.open(buffer, "rb") as wav:
+            if wav.getsampwidth() != 2:
+                raise UnsupportedAudioFormatError()
+
+            if wav.getcomptype() != "NONE":
+                raise UnsupportedAudioFormatError()
+
+            if wav.getnchannels() < 1:
+                raise UnsupportedAudioFormatError()
+
+            frames = wav.readframes(wav.getnframes())
+
+        samples = bytearray(frames)
+        total_samples = len(samples) // 2
+
+        if total_samples < self.HEADER_BITS:
+            raise CorruptedPayloadError()
+
+        # Read first 32 bits → payload length
+        bits = []
+        for i in range(self.HEADER_BITS):
+            sample_byte_index = i * 2
+            bit = samples[sample_byte_index] & 1
+            bits.append(bit)
+
+        length_bytes = bytearray()
+        for i in range(0, self.HEADER_BITS, 8):
+            byte = 0
+            for j in range(8):
+                byte = (byte << 1) | bits[i + j]
+            length_bytes.append(byte)
+
+        payload_length = int.from_bytes(length_bytes, "big")
+
+        # Hard safety validation
+        max_possible_payload = total_samples // 8
+        if payload_length > max_possible_payload:
+            raise CorruptedPayloadError()
+
+        total_payload_bits = payload_length * 8
+
+        if self.HEADER_BITS + total_payload_bits > total_samples:
+            raise CorruptedPayloadError()
+
+        # Read payload bits
+        payload_bits = []
+        for i in range(self.HEADER_BITS, self.HEADER_BITS + total_payload_bits):
+            sample_byte_index = i * 2
+            bit = samples[sample_byte_index] & 1
+            payload_bits.append(bit)
+
+        # Convert bits back to bytes
+        payload = bytearray()
+        for i in range(0, len(payload_bits), 8):
+            byte = 0
+            for j in range(8):
+                byte = (byte << 1) | payload_bits[i + j]
+            payload.append(byte)
+
+        return bytes(payload)
+
+=====================================================
+FILE: src/infrastructure/stego/image_engine.py
+=====================================================
+import io
+import numpy as np
+from domain.interfaces.stego_engine import StegoEngine
+from PIL import Image
+from domain.exceptions import (
+    CorruptedPayloadError,
+    PayloadTooLargeError,
+)
+
+
+class ImageStegoEngine(StegoEngine):
+    HEADER_BITS = 32  # 4 bytes שמציינים את אורך ההודעה
+
+    def embed(self, image_bytes: bytes, encrypted_payload: bytes) -> bytes:
+        img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+        pixels = np.array(img)
+
+        flat_pixels = pixels.flatten().astype(np.uint16)
+
+        length_header = len(encrypted_payload).to_bytes(4, "big")
+        full_payload = length_header + encrypted_payload
+
+        if len(full_payload) * 8 > len(flat_pixels):
+            raise PayloadTooLargeError()
+
+        payload_bits = []
+        for byte in full_payload:
+            for i in range(8):
+                payload_bits.append((byte >> (7 - i)) & 1)
+
+        # הזרקת הביטים ל-LSB (הביט הכי פחות משמעותי)
+        for i, bit in enumerate(payload_bits):
+            flat_pixels[i] = (flat_pixels[i] & 0xFE) | bit
+
+        # החזרה לצורה המקורית של התמונה
+        new_pixels = flat_pixels.reshape(pixels.shape).astype(np.uint8)
+        new_img = Image.fromarray(new_pixels)
+
+        output_buffer = io.BytesIO()
+        new_img.save(output_buffer, format="PNG")  # PNG שומר על הביטים (Lossless)
+        return output_buffer.getvalue()
+
+    def extract(self, image_bytes: bytes) -> bytes:
+        img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+        flat_pixels = np.array(img).flatten()
+
+        if len(flat_pixels) < self.HEADER_BITS:
+            raise CorruptedPayloadError()
+
+        # חילוץ האורך (32 ביטים ראשונים)
+        header_bits = []
+        for i in range(self.HEADER_BITS):
+            header_bits.append(flat_pixels[i] & 1)
+
+        length_bytes = bytearray()
+        for i in range(0, self.HEADER_BITS, 8):
+            byte = 0
+            for j in range(8):
+                byte = (byte << 1) | header_bits[i + j]
+            length_bytes.append(byte)
+
+        payload_length = int.from_bytes(length_bytes, "big")
+
+        # בדיקת תקינות בסיסית של האורך
+        if self.HEADER_BITS + (payload_length * 8) > len(flat_pixels):
+            raise CorruptedPayloadError()
+
+        # חילוץ תוכן ההודעה
+        payload_bits = []
+        start_index = self.HEADER_BITS
+        end_index = self.HEADER_BITS + (payload_length * 8)
+
+        for i in range(start_index, end_index):
+            payload_bits.append(flat_pixels[i] & 1)
+
+        # המרת הביטים חזרה ל-Bytes
+        extracted_payload = bytearray()
+        for i in range(0, len(payload_bits), 8):
+            byte = 0
+            for j in range(8):
+                byte = (byte << 1) | payload_bits[i + j]
+            extracted_payload.append(byte)
+
+        return bytes(extracted_payload)
+
+=====================================================
+FILE: src/infrastructure/stego/text_engine.py
+=====================================================
+from domain.exceptions import PayloadTooLargeError, CorruptedPayloadError
+from domain.interfaces.stego_engine import StegoEngine
+
+
+class TextStegoEngine(StegoEngine):
+    HEADER_BITS = 32  # 4 bytes length header (32 bits)
+
+    def embed(self, cover_bytes: bytes, encrypted_payload: bytes) -> bytes:
+        # המרה מ-bytes לטקסט
+        try:
+            cover_text = cover_bytes.decode("utf-8")
+        except UnicodeDecodeError:
+            raise CorruptedPayloadError("Cover text must be valid UTF-8")
+
+        # 1. אורך + payload
+        length_header = len(encrypted_payload).to_bytes(4, "big")
+        full_payload = length_header + encrypted_payload
+
+        # 2. המרה לביטים
+        payload_bits = []
+        for byte in full_payload:
+            for i in range(8):
+                payload_bits.append((byte >> (7 - i)) & 1)
+
+        # 3. פירוק לשורות
+        lines = cover_text.splitlines()
+
+        # 4. בדיקת קיבולת
+        if len(lines) < len(payload_bits):
+            raise PayloadTooLargeError()
+
+        # 5. הטמעה
+        stego_lines = []
+        for i, bit in enumerate(payload_bits):
+            line = lines[i].rstrip()
+
+            if bit == 0:
+                line += " "
+            else:
+                line += "  "
+
+            stego_lines.append(line)
+
+        # שאר השורות
+        stego_lines.extend(lines[len(payload_bits) :])
+
+        stego_text = "\n".join(stego_lines)
+
+        # החזרה ל-bytes
+        return stego_text.encode("utf-8")
+
+    def extract(self, stego_bytes: bytes) -> bytes:
+        # המרה מ-bytes לטקסט
+        try:
+            stego_text = stego_bytes.decode("utf-8")
+        except UnicodeDecodeError:
+            raise CorruptedPayloadError("Stego text must be valid UTF-8")
+
+        lines = stego_text.splitlines()
+
+        # 1. קריאת header
+        if len(lines) < self.HEADER_BITS:
+            raise CorruptedPayloadError()
+
+        header_bits = []
+        for i in range(self.HEADER_BITS):
+            trailing_spaces = len(lines[i]) - len(lines[i].rstrip(" "))
+
+            if trailing_spaces == 1:
+                header_bits.append(0)
+            elif trailing_spaces == 2:
+                header_bits.append(1)
+            else:
+                raise CorruptedPayloadError()
+
+        # 2. המרת header לאורך
+        length_bytes = bytearray()
+        for i in range(0, self.HEADER_BITS, 8):
+            byte = 0
+            for j in range(8):
+                byte = (byte << 1) | header_bits[i + j]
+            length_bytes.append(byte)
+
+        payload_length = int.from_bytes(length_bytes, "big")
+
+        # 3. בדיקת תקינות
+        total_payload_bits = payload_length * 8
+        if len(lines) < self.HEADER_BITS + total_payload_bits:
+            raise CorruptedPayloadError()
+
+        # 4. חילוץ ביטים
+        payload_bits = []
+        for i in range(self.HEADER_BITS, self.HEADER_BITS + total_payload_bits):
+            trailing_spaces = len(lines[i]) - len(lines[i].rstrip(" "))
+
+            if trailing_spaces == 1:
+                payload_bits.append(0)
+            elif trailing_spaces == 2:
+                payload_bits.append(1)
+            else:
+                raise CorruptedPayloadError()
+
+        # 5. ביטים → bytes
+        payload = bytearray()
+        for i in range(0, len(payload_bits), 8):
+            byte = 0
+            for j in range(8):
+                byte = (byte << 1) | payload_bits[i + j]
+            payload.append(byte)
+
+        return bytes(payload)
+
+=====================================================
+FILE: src/infrastructure/storage/local_storage.py
+=====================================================
+import os
+from domain.interfaces.storage_interface import StorageInterface
+
+class LocalStorage(StorageInterface):
+    def __init__(self, base_path: str = "uploads"):
+        self.base_path = base_path
+        # יצירת תיקיית ה-uploads בשרת אם היא לא קיימת
+        if not os.path.exists(self.base_path):
+            os.makedirs(self.base_path)
+
+    def save(self, file_bytes: bytes, filename: str) -> str:
+        file_path = os.path.join(self.base_path, filename)
+        with open(file_path, "wb") as f:
+            f.write(file_bytes)
+        return file_path
+
+    def get_path(self, filename: str) -> str:
+        return os.path.join(self.base_path, filename)
+
+=====================================================
+FILE: src/presentation/dependencies.py
+=====================================================
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from sqlalchemy.orm import Session
+
+from infrastructure.db.session import SessionLocal
+from infrastructure.db.repositories.user_repository_impl import UserRepositoryImpl
+from application.users.user_service import UserService
+from application.auth.jwt_service import JWTService
+from domain.exceptions import UserNotFoundError
+
+security = HTTPBearer()
+
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: Session = Depends(get_db),
+):
+    token = credentials.credentials
+
+    try:
+        payload = JWTService.verify_token(token)
+        print("PAYLOAD:", payload)
+        user_id = int(payload["sub"])
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token",
+        )
+
+    repo = UserRepositoryImpl(db)
+    service = UserService(repo)
+
+    user_id = int(payload["sub"])
+    user = service.get_by_id(user_id)
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found",
+        )
+
+    return user
+
+=====================================================
+FILE: src/presentation/routes/auth_routes.py
+=====================================================
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+
+from presentation.schemas.auth_schema import (
+    RegisterRequest,
+    LoginRequest,
+    TokenResponse,
+)
+
+from infrastructure.db.session import SessionLocal
+from infrastructure.db.repositories.user_repository_impl import UserRepositoryImpl
+
+from application.users.user_service import UserService
+from application.auth.jwt_service import JWTService
+from domain.exceptions import (
+    UserAlreadyExistsError,
+    InvalidCredentialsError,
+    UserNotFoundError,
+)
+
+router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+@router.post("/register", status_code=201)
+def register(request: RegisterRequest, db: Session = Depends(get_db)):
+    repo = UserRepositoryImpl(db)
+    service = UserService(repo)
+
+    try:
+        service.register(request.email, request.password)
+        return {"message": "User created"}
+    except UserAlreadyExistsError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User already exists",
+        )
+
+
+@router.post("/login", response_model=TokenResponse)
+def login(request: LoginRequest, db: Session = Depends(get_db)):
+    repo = UserRepositoryImpl(db)
+    service = UserService(repo)
+
+    try:
+        user = service.login(request.email, request.password)
+        token = JWTService.create_token(user.id, user.email)
+
+        return TokenResponse(access_token=token)
+
+    except (InvalidCredentialsError, UserNotFoundError):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials",
+        )
+
+=====================================================
+FILE: src/presentation/routes/file_routes.py
+=====================================================
+(empty file)
+
+=====================================================
+FILE: src/presentation/routes/user_routes.py
+=====================================================
+from fastapi import APIRouter, Depends
+
+from presentation.dependencies import get_current_user
+from domain.entities.user import User
+
+router = APIRouter(prefix="/users", tags=["users"])
+
+
+@router.get("/me")
+def get_me(current_user: User = Depends(get_current_user)):
+    return {
+        "id": current_user.id,
+        "email": current_user.email,
+        "created_at": current_user.created_at,
+    }
+
+=====================================================
+FILE: src/presentation/routes/stego_routes.py
+=====================================================
+import uuid
+import os
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Response
+from fastapi.responses import FileResponse # הוספנו את זה להורדת קבצים
+from infrastructure.stego.stego_dispatcher import StegoDispatcher
+from domain.exceptions import CorruptedPayloadError, PayloadTooLargeError
+from domain.enums.stego_type import StegoType
+from infrastructure.storage.local_storage import LocalStorage
+
+storage = LocalStorage()
+router = APIRouter(prefix="/stego", tags=["Steganography"])
+stego_service = StegoDispatcher()
+
+@router.post("/embed")
+async def embed_message(
+    stego_type: StegoType = Form(..., description="image, audio, or text"),
+    secret_data: str = Form(..., description="The message you want to hide"),
+    file: UploadFile = File(...),
+):
+    try:
+        file_bytes = await file.read()
+        payload = secret_data.encode("utf-8")
+        result_bytes = stego_service.dispatch_embed(stego_type, file_bytes, payload)
+
+        unique_filename = f"{uuid.uuid4()}_{file.filename}"
+        storage.save(result_bytes, unique_filename)
+
+        media_type = "image/png" if stego_type == "image" else "audio/wav"
+        return Response(content=result_bytes, media_type=media_type)
+    except PayloadTooLargeError:
+        raise HTTPException(status_code=400, detail="The message is too large for this file.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
+
+@router.post("/extract")
+async def extract_message(stego_type: str = Form(...), file: UploadFile = File(...)):
+    try:
+        file_bytes = await file.read()
+        extracted_bytes = stego_service.dispatch_extract(stego_type, file_bytes)
+        return {
+            "stego_type": stego_type,
+            "extracted_message": extracted_bytes.decode("utf-8"),
+        }
+    except CorruptedPayloadError:
+        raise HTTPException(status_code=400, detail="Could not find a valid message in this file.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Extraction failed: {str(e)}")
+
+@router.get("/files")
+async def list_files():
+    try:
+        upload_dir = storage.base_path
+        if not os.path.exists(upload_dir):
+            return {"total_files": 0, "files": []}
+        files = os.listdir(upload_dir)
+        return {"total_files": len(files), "files": files}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/download/{filename}")
+async def download_file(filename: str):
+    """
+    נתיב שמאפשר להוריד קובץ ספציפי מתיקיית ה-uploads לפי השם שלו.
+    """
+    file_path = os.path.join(storage.base_path, filename)
+    
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="File not found")
+        
+    return FileResponse(
+        path=file_path,
+        filename=filename,
+        media_type='application/octet-stream'
+    )
+
+=====================================================
+FILE: src/presentation/routes/share_routes.py
+=====================================================
+(empty file)
+
+=====================================================
+FILE: src/presentation/schemas/auth_schema.py
+=====================================================
+from pydantic import BaseModel
+
+
+class RegisterRequest(BaseModel):
+    email: str
+    password: str
+
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+=====================================================
+FILE: src/presentation/schemas/user_schema.py
+=====================================================
+(empty file)
+
+=====================================================
+FILE: src/presentation/schemas/file_schema.py
+=====================================================
+(empty file)
+
+=====================================================
+FILE: src/tests/conftest.py
+=====================================================
+import os
+import pytest
+
+os.environ["ENVIRONMENT"] = "test"
+
+from infrastructure.db.session import engine, Base
+
+
+@pytest.fixture(scope="session", autouse=True)
+def create_test_database():
+    """
+    Creates all tables once before tests run.
+    Drops them after all tests finish.
+    """
+    Base.metadata.create_all(bind=engine)
+    yield
+    Base.metadata.drop_all(bind=engine)
+
+=====================================================
+FILE: src/tests/unit/application/test_download_message_use_case.py
+=====================================================
+from uuid import uuid4
+from datetime import datetime, timezone
+
+import pytest
+
+from domain.entities.message import Message
+from domain.enums.message_status import MessageStatus
+from domain.enums.stego_type import StegoType
+from domain.interfaces.message_repository import MessageRepository
+from domain.exceptions import DomainError
+from application.messages.download_message_use_case import DownloadMessageUseCase
+
+
+class FakeMessageRepository(MessageRepository):
+
+    def __init__(self, message: Message | None):
+        self._message = message
+        self.updated = False
+
+    def save(self, message):
+        return message
+
+    def get_by_id(self, message_id):
+        return self._message
+
+    def list_for_recipient(self, recipient_id):
+        return []
+
+    def update(self, message):
+        self.updated = True
+        return message
+
+
+def create_message():
+    return Message(
+        id=uuid4(),
+        sender_id=1,
+        recipient_id=2,
+        file_path="file.bin",
+        file_hash="hash",
+        stego_type=StegoType.AUDIO,
+        key_version=1,
+        status=MessageStatus.SENT,
+        created_at=datetime.now(timezone.utc),
+    )
+
+
+def test_download_marks_delivered():
+    message = create_message()
+    repo = FakeMessageRepository(message)
+    use_case = DownloadMessageUseCase(repo)
+
+    result = use_case.execute(message.id, current_user_id=2)
+
+    assert result.status == MessageStatus.DELIVERED
+    assert repo.updated is True
+
+
+def test_download_wrong_user():
+    message = create_message()
+    repo = FakeMessageRepository(message)
+    use_case = DownloadMessageUseCase(repo)
+
+    with pytest.raises(DomainError):
+        use_case.execute(message.id, current_user_id=99)
+
+
+def test_download_not_found():
+    repo = FakeMessageRepository(None)
+    use_case = DownloadMessageUseCase(repo)
+
+    with pytest.raises(DomainError):
+        use_case.execute(uuid4(), current_user_id=2)
+
+=====================================================
+FILE: src/tests/unit/application/test_send_message_use_case.py
+=====================================================
+from uuid import uuid4
+from typing import List
+
+from domain.entities.message import Message
+from domain.interfaces.message_repository import MessageRepository
+from domain.enums.message_status import MessageStatus
+from application.messages.send_message_use_case import SendMessageUseCase
+
+
+class FakeMessageRepository(MessageRepository):
+
+    def __init__(self):
+        self.saved_messages: List[Message] = []
+
+    def save(self, message: Message) -> Message:
+        self.saved_messages.append(message)
+        return message
+
+    def get_by_id(self, message_id):
+        return None
+
+    def list_for_recipient(self, recipient_id):
+        return []
+
+    def update(self, message: Message) -> Message:
+        return message
+
+
+def test_send_message_creates_and_saves_message():
+    repo = FakeMessageRepository()
+    use_case = SendMessageUseCase(repo)
+
+    message = use_case.execute(
+        sender_id=1,
+        recipient_id=2,
+        file_path="file.bin",
+        file_hash="hash123",
+        stego_type="audio",
+        key_version=1,
+    )
+
+    assert message.sender_id == 1
+    assert message.recipient_id == 2
+    assert message.status == MessageStatus.SENT
+    assert message.delivered_at is None
+    assert message.read_at is None
+    assert len(repo.saved_messages) == 1
+
+=====================================================
+FILE: src/tests/unit/application/test_mark_read_use_case.py
+=====================================================
+from uuid import uuid4
+from datetime import datetime, timezone
+
+import pytest
+
+from domain.entities.message import Message
+from domain.enums.message_status import MessageStatus
+from domain.enums.stego_type import StegoType
+from domain.interfaces.message_repository import MessageRepository
+from domain.exceptions import DomainError
+from application.messages.mark_read_use_case import MarkReadUseCase
+
+
+class FakeMessageRepository(MessageRepository):
+
+    def __init__(self, message: Message | None):
+        self._message = message
+        self.updated = False
+
+    def save(self, message):
+        return message
+
+    def get_by_id(self, message_id):
+        return self._message
+
+    def list_for_recipient(self, recipient_id):
+        return []
+
+    def update(self, message):
+        self.updated = True
+        return message
+
+
+def create_message(status=MessageStatus.SENT):
+    return Message(
+        id=uuid4(),
+        sender_id=1,
+        recipient_id=2,
+        file_path="file.bin",
+        file_hash="hash",
+        stego_type=StegoType.AUDIO,
+        key_version=1,
+        status=status,
+        created_at=datetime.now(timezone.utc),
+    )
+
+
+def test_mark_read_from_sent():
+    message = create_message(MessageStatus.SENT)
+    repo = FakeMessageRepository(message)
+    use_case = MarkReadUseCase(repo)
+
+    result = use_case.execute(message.id, current_user_id=2)
+
+    assert result.status == MessageStatus.READ
+    assert repo.updated is True
+
+
+def test_mark_read_from_delivered():
+    message = create_message(MessageStatus.DELIVERED)
+    repo = FakeMessageRepository(message)
+    use_case = MarkReadUseCase(repo)
+
+    result = use_case.execute(message.id, current_user_id=2)
+
+    assert result.status == MessageStatus.READ
+    assert repo.updated is True
+
+
+def test_mark_read_wrong_user():
+    message = create_message()
+    repo = FakeMessageRepository(message)
+    use_case = MarkReadUseCase(repo)
+
+    with pytest.raises(DomainError):
+        use_case.execute(message.id, current_user_id=99)
+
+
+def test_mark_read_not_found():
+    repo = FakeMessageRepository(None)
+    use_case = MarkReadUseCase(repo)
+
+    with pytest.raises(DomainError):
+        use_case.execute(uuid4(), current_user_id=2)
+
+=====================================================
+FILE: src/tests/unit/application/test_list_inbox_use_case.py
+=====================================================
+from uuid import uuid4
+from datetime import datetime, timezone
+
+from domain.entities.message import Message
+from domain.enums.message_status import MessageStatus
+from domain.interfaces.message_repository import MessageRepository
+from application.messages.list_inbox_use_case import ListInboxUseCase
+
+
+class FakeMessageRepository(MessageRepository):
+
+    def __init__(self, messages):
+        self._messages = messages
+
+    def save(self, message):
+        return message
+
+    def get_by_id(self, message_id):
+        return None
+
+    def list_for_recipient(self, recipient_id):
+        return [m for m in self._messages if m.recipient_id == recipient_id]
+
+    def update(self, message):
+        return message
+
+
+def create_message(recipient_id):
+    return Message(
+        id=uuid4(),
+        sender_id=1,
+        recipient_id=recipient_id,
+        file_path="file.bin",
+        file_hash="hash",
+        stego_type="audio",
+        key_version=1,
+        status=MessageStatus.SENT,
+        created_at=datetime.now(timezone.utc),
+    )
+
+
+def test_list_inbox_returns_only_recipient_messages():
+    messages = [
+        create_message(2),
+        create_message(3),
+        create_message(2),
+    ]
+
+    repo = FakeMessageRepository(messages)
+    use_case = ListInboxUseCase(repo)
+
+    result = use_case.execute(recipient_id=2)
+
+    assert len(result) == 2
+    assert all(m.recipient_id == 2 for m in result)
+
+=====================================================
+FILE: src/tests/unit/application/test_embed_use_case.py
+=====================================================
+import pytest
+
+from application.files.embed_use_case import EmbedUseCase
+from application.key_management.key_service import KeyService
+from domain.crypto.aes_engine import AESEngine
+from infrastructure.stego.audio_engine import AudioStegoEngine
+
+
+def generate_test_wav(duration_seconds=1, sample_rate=44100):
+    import io
+    import wave
+
+    buffer = io.BytesIO()
+
+    with wave.open(buffer, "wb") as wav:
+        wav.setnchannels(1)
+        wav.setsampwidth(2)
+        wav.setframerate(sample_rate)
+
+        num_samples = int(duration_seconds * sample_rate)
+        silence = b"\x00\x00" * num_samples
+        wav.writeframes(silence)
+
+    return buffer.getvalue()
+
+
+def test_embed_use_case_roundtrip():
+    key_service = KeyService()
+    aes_engine = AESEngine()
+    stego_engine = AudioStegoEngine()
+
+    use_case = EmbedUseCase(
+        key_service,
+        aes_engine,
+        stego_engine,
+    )
+
+    original_audio = generate_test_wav()
+    payload = b"secret-data"
+    password = b"strong-password"
+
+    stego_audio, wrapped_dek, salt = use_case.execute(
+        original_audio,
+        payload,
+        password,
+    )
+
+    # Extract manually to validate flow
+    encrypted_payload = stego_engine.extract(stego_audio)
+
+    dek = key_service.unwrap_file_key(
+        password,
+        wrapped_dek,
+        salt,
+    )
+
+    # 🔐 MUST pass same AAD used in EmbedUseCase
+    decrypted = aes_engine.decrypt(
+        encrypted_payload,
+        dek,
+        aad=wrapped_dek,
+    )
+
+    assert decrypted == payload
+
+=====================================================
+FILE: src/tests/unit/application/test_extract_use_case.py
+=====================================================
+from application.files.embed_use_case import EmbedUseCase
+from application.files.extract_use_case import ExtractUseCase
+from application.key_management.key_service import KeyService
+from domain.crypto.aes_engine import AESEngine
+from infrastructure.stego.audio_engine import AudioStegoEngine
+
+
+def generate_test_wav(duration_seconds=1, sample_rate=44100):
+    import io
+    import wave
+
+    buffer = io.BytesIO()
+
+    with wave.open(buffer, "wb") as wav:
+        wav.setnchannels(1)
+        wav.setsampwidth(2)
+        wav.setframerate(sample_rate)
+
+        num_samples = int(duration_seconds * sample_rate)
+        silence = b"\x00\x00" * num_samples
+        wav.writeframes(silence)
+
+    return buffer.getvalue()
+
+
+def test_full_encrypt_embed_extract_decrypt_flow():
+    key_service = KeyService()
+    aes_engine = AESEngine()
+    stego_engine = AudioStegoEngine()
+
+    embed_use_case = EmbedUseCase(
+        key_service,
+        aes_engine,
+        stego_engine,
+    )
+
+    extract_use_case = ExtractUseCase(
+        key_service,
+        aes_engine,
+        stego_engine,
+    )
+
+    original_audio = generate_test_wav()
+    payload = b"super-secret"
+    password = b"very-strong-password"
+
+    stego_audio, wrapped_dek, salt = embed_use_case.execute(
+        original_audio,
+        payload,
+        password,
+    )
+
+    recovered_payload = extract_use_case.execute(
+        stego_audio,
+        password,
+        wrapped_dek,
+        salt,
+    )
+
+    assert recovered_payload == payload
+
+=====================================================
+FILE: src/tests/unit/application/test_user_service.py
+=====================================================
+import pytest
+
+from infrastructure.db.models import UserModel
+from infrastructure.db.session import SessionLocal
+from infrastructure.db.repositories.user_repository_impl import UserRepositoryImpl
+
+from domain.exceptions import (
+    InvalidCredentialsError,
+    UserNotFoundError,
+)
+
+from application.users.user_service import (
+    UserService,
+    UserAlreadyExistsError,
+)
+
+
+def clear_users_table(session):
+    session.query(UserModel).delete()
+    session.commit()
+
+
+def test_user_registration():
+    session = SessionLocal()
+    clear_users_table(session)
+
+    repo = UserRepositoryImpl(session)
+    service = UserService(repo)
+
+    user = service.register(
+        email="test@example.com",
+        password="securepassword",
+    )
+
+    assert user.id is not None
+    assert user.email == "test@example.com"
+    assert user.password_hash.startswith("$2b$")
+
+
+def test_duplicate_user_registration():
+    session = SessionLocal()
+    clear_users_table(session)
+
+    repo = UserRepositoryImpl(session)
+    service = UserService(repo)
+
+    service.register(
+        email="duplicate@example.com",
+        password="pass",
+    )
+
+    with pytest.raises(UserAlreadyExistsError):
+        service.register(
+            email="duplicate@example.com",
+            password="pass",
+        )
+
+
+def test_successful_login():
+    session = SessionLocal()
+    clear_users_table(session)
+
+    repo = UserRepositoryImpl(session)
+    service = UserService(repo)
+
+    service.register(
+        email="login@example.com",
+        password="mypassword",
+    )
+
+    user = service.login(
+        email="login@example.com",
+        password="mypassword",
+    )
+
+    assert user.email == "login@example.com"
+
+
+def test_login_wrong_password():
+    session = SessionLocal()
+    clear_users_table(session)
+
+    repo = UserRepositoryImpl(session)
+    service = UserService(repo)
+
+    service.register(
+        email="wrongpass@example.com",
+        password="correct",
+    )
+
+    with pytest.raises(InvalidCredentialsError):
+        service.login(
+            email="wrongpass@example.com",
+            password="incorrect",
+        )
+
+
+def test_login_user_not_found():
+    session = SessionLocal()
+    clear_users_table(session)
+
+    repo = UserRepositoryImpl(session)
+    service = UserService(repo)
+
+    with pytest.raises(UserNotFoundError):
+        service.login(
+            email="doesnotexist@example.com",
+            password="pass",
+        )
+
+=====================================================
+FILE: src/tests/unit/application/test_key_service.py
+=====================================================
+import pytest
+
+from application.key_management.key_service import KeyService
+from domain.exceptions import InvalidPasswordError
+
+
+def test_generate_and_unwrap_roundtrip():
+    password = b"strong-password"
+
+    dek, wrapped_dek, salt = KeyService.generate_file_keys(password)
+
+    recovered_dek = KeyService.unwrap_file_key(
+        password,
+        wrapped_dek,
+        salt,
+    )
+
+    assert recovered_dek == dek
+
+
+def test_wrong_password_fails():
+    password = b"correct"
+    wrong_password = b"wrong"
+
+    dek, wrapped_dek, salt = KeyService.generate_file_keys(password)
+
+    with pytest.raises(Exception):
+        KeyService.unwrap_file_key(
+            wrong_password,
+            wrapped_dek,
+            salt,
+        )
+
+
+def test_empty_password_raises():
+    with pytest.raises(InvalidPasswordError):
+        KeyService.generate_file_keys(b"")
+
+=====================================================
+FILE: src/tests/unit/application/test_jwt_service.py
+=====================================================
+import os
+
+# חייב לבוא לפני ה-import של JWTService
+os.environ["JWT_SECRET"] = "test-secret-key"
+
+import pytest
+from application.auth.jwt_service import JWTService
+
+
+def test_create_and_verify_token():
+    token = JWTService.create_token(1, "test@example.com")
+
+    payload = JWTService.verify_token(token)
+
+    assert payload["sub"] == "1"
+    assert payload["email"] == "test@example.com"
+
+
+def test_invalid_token():
+    with pytest.raises(ValueError):
+        JWTService.verify_token("invalid.token.value")
+
+=====================================================
+FILE: src/tests/unit/crypto/test_aes_engine.py
+=====================================================
+import os
+import pytest
+
+from domain.crypto.aes_engine import AESEngine
+from domain.exceptions import (
+    InvalidKeyLengthError,
+    DecryptionFailedError,
+)
+
+
+def test_encrypt_decrypt_roundtrip():
+    engine = AESEngine()
+    key = os.urandom(32)
+    data = b"hello world"
+
+    encrypted = engine.encrypt(data, key)
+    decrypted = engine.decrypt(encrypted, key)
+
+    assert decrypted == data
+
+
+def test_invalid_key_length():
+    engine = AESEngine()
+    key = os.urandom(16)  # wrong size
+    data = b"test"
+
+    with pytest.raises(InvalidKeyLengthError):
+        engine.encrypt(data, key)
+
+
+def test_decryption_with_wrong_key_fails():
+    engine = AESEngine()
+    key1 = os.urandom(32)
+    key2 = os.urandom(32)
+    data = b"secret"
+
+    encrypted = engine.encrypt(data, key1)
+
+    with pytest.raises(DecryptionFailedError):
+        engine.decrypt(encrypted, key2)
+
+
+def test_aad_mismatch_should_fail():
+    engine = AESEngine()
+
+    key = os.urandom(32)
+    data = b"super secret data"
+
+    aad_correct = b"metadata_v1"
+    aad_wrong = b"metadata_v2"
+
+    encrypted = engine.encrypt(data, key, aad=aad_correct)
+
+    with pytest.raises(DecryptionFailedError):
+        engine.decrypt(encrypted, key, aad=aad_wrong)
+
+=====================================================
+FILE: src/tests/unit/crypto/test_kdf_engine.py
+=====================================================
+import pytest
+import os
+
+from domain.crypto.kdf_engine import KDFEngine
+from domain.exceptions import (
+    InvalidPasswordError,
+    InvalidSaltError,
+)
+
+
+def test_derive_key_is_deterministic():
+    password = b"secure-password"
+    salt = b"1234567890abcdef"
+
+    key1 = KDFEngine.derive_key(password, salt)
+    key2 = KDFEngine.derive_key(password, salt)
+
+    assert key1 == key2
+    assert len(key1) == 32
+
+
+def test_empty_password_raises():
+    with pytest.raises(InvalidPasswordError):
+        KDFEngine.derive_key(b"", b"1234567890abcdef")
+
+
+def test_short_salt_raises():
+    with pytest.raises(InvalidSaltError):
+        KDFEngine.derive_key(b"password", b"short")
+
+=====================================================
+FILE: src/tests/unit/crypto/test_key_wrapper.py
+=====================================================
+import os
+import pytest
+
+from domain.crypto.key_wrapper import KeyWrapper
+from domain.exceptions import (
+    InvalidKeyLengthError,
+    DecryptionFailedError,
+    InvalidWrappedKeyError,
+)
+
+
+def test_wrap_and_unwrap_success():
+    dek = os.urandom(32)
+    kek = os.urandom(32)
+
+    wrapped = KeyWrapper.wrap(dek, kek)
+    unwrapped = KeyWrapper.unwrap(wrapped, kek)
+
+    assert unwrapped == dek
+
+
+def test_wrap_invalid_dek_length():
+    with pytest.raises(InvalidKeyLengthError):
+        KeyWrapper.wrap(b"short", os.urandom(32))
+
+
+def test_unwrap_with_wrong_kek_fails():
+    dek = os.urandom(32)
+    kek = os.urandom(32)
+    wrong_kek = os.urandom(32)
+
+    wrapped = KeyWrapper.wrap(dek, kek)
+
+    with pytest.raises(DecryptionFailedError):
+        KeyWrapper.unwrap(wrapped, wrong_kek)
+
+
+def test_unwrap_empty_raises():
+    with pytest.raises(InvalidWrappedKeyError):
+        KeyWrapper.unwrap(b"", os.urandom(32))
+
+=====================================================
+FILE: src/tests/unit/domain/test_message_entity.py
+=====================================================
+from datetime import datetime, timezone
+from uuid import uuid4
+
+import pytest
+
+from domain.entities.message import Message
+from domain.enums.message_status import MessageStatus
+from domain.exceptions import DomainError
+
+
+def create_message(status: MessageStatus = MessageStatus.SENT) -> Message:
+    now = datetime.now(timezone.utc)
+    return Message(
+        id=uuid4(),
+        sender_id=1,
+        recipient_id=2,
+        file_path="test.bin",
+        file_hash="abc123",
+        stego_type="audio",
+        key_version=1,
+        status=status,
+        created_at=now,
+    )
+
+
+# ------------------------
+# SENT → DELIVERED
+# ------------------------
+
+
+def test_mark_delivered_from_sent():
+    message = create_message(MessageStatus.SENT)
+    now = datetime.now(timezone.utc)
+
+    message.mark_delivered(now)
+
+    assert message.status == MessageStatus.DELIVERED
+    assert message.delivered_at == now
+
+
+# ------------------------
+# SENT → READ (auto-delivered)
+# ------------------------
+
+
+def test_mark_read_from_sent():
+    message = create_message(MessageStatus.SENT)
+    now = datetime.now(timezone.utc)
+
+    message.mark_read(now)
+
+    assert message.status == MessageStatus.READ
+    assert message.delivered_at == now
+    assert message.read_at == now
+
+
+# ------------------------
+# DELIVERED → READ
+# ------------------------
+
+
+def test_mark_read_from_delivered():
+    message = create_message(MessageStatus.DELIVERED)
+    now = datetime.now(timezone.utc)
+
+    message.mark_read(now)
+
+    assert message.status == MessageStatus.READ
+    assert message.read_at == now
+
+
+# ------------------------
+# Idempotency
+# ------------------------
+
+
+def test_mark_delivered_idempotent():
+    message = create_message(MessageStatus.DELIVERED)
+    now = datetime.now(timezone.utc)
+
+    message.mark_delivered(now)
+
+    assert message.status == MessageStatus.DELIVERED
+
+
+def test_mark_read_idempotent():
+    message = create_message(MessageStatus.READ)
+    now = datetime.now(timezone.utc)
+
+    message.mark_read(now)
+
+    assert message.status == MessageStatus.READ
+
+
+# ------------------------
+# Invalid transition
+# ------------------------
+
+
+def test_invalid_transition():
+    message = create_message(MessageStatus.READ)
+
+    with pytest.raises(DomainError):
+        message.mark_delivered(datetime.now(timezone.utc))
+
+=====================================================
+FILE: src/tests/unit/stego/test_audio_engine.py
+=====================================================
+import io
+import wave
+import pytest
+
+from infrastructure.stego.audio_engine import AudioStegoEngine
+from domain.exceptions import PayloadTooLargeError, CorruptedPayloadError
+
+
+def generate_test_wav(duration_seconds=1, sample_rate=44100):
+    buffer = io.BytesIO()
+
+    with wave.open(buffer, "wb") as wav:
+        wav.setnchannels(1)
+        wav.setsampwidth(2)  # 16-bit
+        wav.setframerate(sample_rate)
+
+        num_samples = int(duration_seconds * sample_rate)
+        silence = b"\x00\x00" * num_samples
+        wav.writeframes(silence)
+
+    return buffer.getvalue()
+
+
+def test_embed_and_extract_roundtrip():
+    engine = AudioStegoEngine()
+
+    original_audio = generate_test_wav()
+    payload = b"hello world"
+
+    embedded_audio = engine.embed(original_audio, payload)
+    extracted_payload = engine.extract(embedded_audio)
+
+    assert extracted_payload == payload
+
+
+import pytest
+
+
+def test_payload_too_large():
+    engine = AudioStegoEngine()
+
+    # WAV מאוד קטן
+    small_audio = generate_test_wav(duration_seconds=0.001)  # מעט samples
+    large_payload = b"A" * 10000  # גדול מדי
+
+    from domain.exceptions import PayloadTooLargeError
+
+    with pytest.raises(PayloadTooLargeError):
+
+        engine.embed(small_audio, large_payload)
+
+
+def test_corrupted_payload_length():
+    engine = AudioStegoEngine()
+
+    original_audio = generate_test_wav()
+    payload = b"hello"
+
+    embedded = engine.embed(original_audio, payload)
+
+    corrupted = bytearray(embedded)
+    corrupted[44] ^= 1  # flip first LSB in data section
+
+    with pytest.raises(CorruptedPayloadError):
+        engine.extract(bytes(corrupted))
+
+=====================================================
+FILE: src/tests/unit/stego/test_image_engine.py
+=====================================================
+import pytest
+import io
+from PIL import Image
+from infrastructure.stego.image_engine import ImageStegoEngine
+
+
+def test_image_stego_embed_and_extract():
+    # אתחול המנוע
+    engine = ImageStegoEngine()
+
+    # 1. יצירת תמונת מקור לבדיקה (ריבוע כחול 50x50)
+    img = Image.new("RGB", (50, 50), color="blue")
+    img_byte_arr = io.BytesIO()
+    img.save(img_byte_arr, format="PNG")
+    image_bytes = img_byte_arr.getvalue()
+
+    # 2. ההודעה שאנחנו רוצים להחביא
+    secret_message = b"Top Secret 2026"
+
+    # 3. הרצת ההטמעה
+    stego_bytes = engine.embed(image_bytes, secret_message)
+
+    # 4. הרצת החילוץ
+    extracted_message = engine.extract(stego_bytes)
+
+    # 5. הבדיקה (Assertion) - האם מה שיצא זה מה שנכנס?
+    assert extracted_message == secret_message
+    print("\n✅ המנוע עבר את הבדיקה בהצלחה!")
+
+=====================================================
+FILE: src/tests/unit/stego/test_text_engine.py
+=====================================================
+import pytest
+from infrastructure.stego.text_engine import TextStegoEngine
+from domain.exceptions import PayloadTooLargeError, CorruptedPayloadError
+
+
+# פונקציית עזר ליצירת טקסט עם מספר שורות רצוי
+def generate_test_text(lines_count=100):
+    return "\n".join([f"This is cover line number {i}" for i in range(lines_count)])
+
+
+def test_text_embed_and_extract_roundtrip():
+    engine = TextStegoEngine()
+
+    # טקסט מספיק ארוך → ממירים ל-bytes
+    original_text = generate_test_text(lines_count=200).encode("utf-8")
+    payload = b"secret text message"
+
+    # embed + extract
+    stego_bytes = engine.embed(original_text, payload)
+    extracted_payload = engine.extract(stego_bytes)
+
+    assert extracted_payload == payload
+
+
+def test_text_payload_too_large():
+    engine = TextStegoEngine()
+
+    # טקסט קצר מדי → ממירים ל-bytes
+    short_text = generate_test_text(lines_count=10).encode("utf-8")
+    payload = b"A" * 50
+
+    with pytest.raises(PayloadTooLargeError):
+        engine.embed(short_text, payload)
+
+
+def test_text_corrupted_payload():
+    engine = TextStegoEngine()
+
+    original_text = generate_test_text(lines_count=100).encode("utf-8")
+    payload = b"test"
+
+    stego_bytes = engine.embed(original_text, payload)
+
+    # נגרום לשחיתות ע"י הסרת הרווחים מהשורה הראשונה
+    lines = stego_bytes.decode("utf-8").splitlines()
+    lines[0] = lines[0].rstrip()
+    corrupted_bytes = "\n".join(lines).encode("utf-8")
+
+    with pytest.raises(CorruptedPayloadError):
+        engine.extract(corrupted_bytes)
+
+================================================================================
+END OF SNAPSHOT - PART 1
+================================================================================
+
+Total Files in Backend: 78 files
+Snapshot Generated: March 2, 2026
+Format: Complete raw source code snapshot
+No files modified, filtered, or excluded (except venv, __pycache__, .git, test.db, .pytest_cache)
