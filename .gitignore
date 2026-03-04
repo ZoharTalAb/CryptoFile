@@ -74,3 +74,4 @@ pip-log.txt
 # Project specific
 # ===============================
 instance/
+PROJECT_SNAPSHOT_*.txt
