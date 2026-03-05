@@ -25,7 +25,7 @@ async def embed_message(
         unique_filename = f"{uuid.uuid4()}_{file.filename}"
         storage.save(result_bytes, unique_filename)
 
-        media_type = "image/png" if stego_type == "image" else "audio/wav"
+        media_type = {StegoType.IMAGE: "image/png", StegoType.AUDIO: "audio/wav", StegoType.TEXT: "text/plain"}.get(stego_type, "application/octet-stream")
         return Response(content=result_bytes, media_type=media_type)
     except PayloadTooLargeError:
         raise HTTPException(status_code=400, detail="The message is too large for this file.")
