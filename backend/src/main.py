@@ -20,6 +20,9 @@ from domain.exceptions import (
     UserNotFoundError,
 )
 
+from fastapi.middleware.cors import CORSMiddleware
+from core.config import CORS_ORIGINS, ENVIRONMENT
+
 logger = logging.getLogger("cryptofile")
 
 app = FastAPI(
@@ -31,6 +34,25 @@ app = FastAPI(
 # ---------------------------
 # Global Exception Handlers
 # ---------------------------
+
+# CORS
+if CORS_ORIGINS:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=CORS_ORIGINS,
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+        allow_headers=["Authorization", "Content-Type"],
+    )
+elif ENVIRONMENT != "production":
+    # Dev fallback: allow localhost only patterns (keep it simple)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["http://localhost:3000", "http://localhost:5173"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 
 @app.exception_handler(UserAlreadyExistsError)
