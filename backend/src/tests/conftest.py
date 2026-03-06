@@ -23,6 +23,6 @@ def setup_database():
     and drops them at the end.
     Uses SQLite file DB by default: ./test.db
     """
-    Base.metadata.create_all(bind=engine)
+    #Base.metadata.create_all(bind=engine)
     yield
-    Base.metadata.drop_all(bind=engine)
+    #Base.metadata.drop_all(bind=engine)
