@@ -1,7 +1,6 @@
-import logging
-
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
 from presentation.routes import (
@@ -12,6 +11,8 @@ from presentation.routes import (
     file_routes,
 )
 from infrastructure.db.session import engine
+from core.config import CORS_ORIGINS, ENVIRONMENT
+from core.logging import logger
 
 from domain.exceptions import (
     DomainError,
@@ -20,11 +21,6 @@ from domain.exceptions import (
     UserNotFoundError,
 )
 
-from fastapi.middleware.cors import CORSMiddleware
-from core.config import CORS_ORIGINS, ENVIRONMENT
-
-logger = logging.getLogger("cryptofile")
-
 app = FastAPI(
     title="CryptoFile API",
     description="מערכת להעברת הודעות מאובטחת באמצעות סטגנוגרפיה בתמונות, אודיו וטקסט",
@@ -32,10 +28,8 @@ app = FastAPI(
 )
 
 # ---------------------------
-# Global Exception Handlers
-# ---------------------------
-
 # CORS
+# ---------------------------
 if CORS_ORIGINS:
     app.add_middleware(
         CORSMiddleware,
@@ -45,7 +39,6 @@ if CORS_ORIGINS:
         allow_headers=["Authorization", "Content-Type"],
     )
 elif ENVIRONMENT != "production":
-    # Dev fallback: allow localhost only patterns (keep it simple)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["http://localhost:3000", "http://localhost:5173"],
@@ -53,6 +46,10 @@ elif ENVIRONMENT != "production":
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+# ---------------------------
+# Global Exception Handlers
+# ---------------------------
 
 
 @app.exception_handler(UserAlreadyExistsError)
@@ -72,20 +69,19 @@ async def user_not_found_handler(request: Request, exc: UserNotFoundError):
 
 @app.exception_handler(DomainError)
 async def domain_error_handler(request: Request, exc: DomainError):
-    # Business/domain rule violations
+    # Domain/business errors are not "server errors"
     msg = str(exc).strip() or "Domain error"
+    logger.info(
+        "DomainError path=%s method=%s detail=%s", request.url.path, request.method, msg
+    )
     return JSONResponse(status_code=400, content={"detail": msg})
 
 
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception):
-    # Log full traceback internally, don't leak details to the client
+    # Never leak internals. Log full stacktrace server-side.
     logger.exception(
-        "Unhandled exception",
-        extra={
-            "path": request.url.path,
-            "method": request.method,
-        },
+        "Unhandled exception path=%s method=%s", request.url.path, request.method
     )
     return JSONResponse(status_code=500, content={"detail": "Internal server error"})
 
@@ -93,13 +89,11 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 # ---------------------------
 # Routers
 # ---------------------------
-
 app.include_router(auth_routes.router)
 app.include_router(user_routes.router)
 app.include_router(stego_routes.router)
 app.include_router(share_routes.router)
 app.include_router(file_routes.router)
-
 
 # ---------------------------
 # Basic Endpoints
@@ -117,11 +111,11 @@ def health():
     Lightweight health endpoint.
     - status: API process is up
     - db: checks DB connectivity with SELECT 1
+    Returns 200 if ok, 503 if db down (better for monitors).
     """
     try:
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
         return {"status": "ok", "db": "ok"}
     except Exception:
-        logger.warning("Health check failed", extra={"component": "db"})
-        return {"status": "ok", "db": "down"}
+        return JSONResponse(status_code=503, content={"status": "ok", "db": "down"})
