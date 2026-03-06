@@ -1,4 +1,5 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
 from presentation.routes import (
@@ -10,18 +11,66 @@ from presentation.routes import (
 )
 from infrastructure.db.session import engine
 
+from domain.exceptions import (
+    DomainError,
+    UserAlreadyExistsError,
+    InvalidCredentialsError,
+    UserNotFoundError,
+)
+
 app = FastAPI(
     title="CryptoFile API",
     description="מערכת להעברת הודעות מאובטחת באמצעות סטגנוגרפיה בתמונות, אודיו וטקסט",
     version="1.0.0",
 )
 
+# ---------------------------
+# Global Exception Handlers
+# ---------------------------
+
+
+@app.exception_handler(UserAlreadyExistsError)
+async def user_exists_handler(request: Request, exc: UserAlreadyExistsError):
+    return JSONResponse(status_code=400, content={"detail": "User already exists"})
+
+
+@app.exception_handler(InvalidCredentialsError)
+async def invalid_credentials_handler(request: Request, exc: InvalidCredentialsError):
+    return JSONResponse(status_code=401, content={"detail": "Invalid credentials"})
+
+
+@app.exception_handler(UserNotFoundError)
+async def user_not_found_handler(request: Request, exc: UserNotFoundError):
+    return JSONResponse(status_code=404, content={"detail": "User not found"})
+
+
+@app.exception_handler(DomainError)
+async def domain_error_handler(request: Request, exc: DomainError):
+    # Business/domain rule violations
+    msg = str(exc).strip() or "Domain error"
+    return JSONResponse(status_code=400, content={"detail": msg})
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    # Do not leak internal details
+    return JSONResponse(status_code=500, content={"detail": "Internal server error"})
+
+
+# ---------------------------
 # Routers
+# ---------------------------
+
 app.include_router(auth_routes.router)
 app.include_router(user_routes.router)
 app.include_router(stego_routes.router)
 app.include_router(share_routes.router)
 app.include_router(file_routes.router)
+
+
+# ---------------------------
+# Basic Endpoints
+# ---------------------------
 
 
 @app.get("/")
@@ -41,5 +90,5 @@ def health():
             conn.execute(text("SELECT 1"))
         return {"status": "ok", "db": "ok"}
     except Exception:
-        # Do not leak internal details in production health endpoint
+        # Keep it simple & safe
         return {"status": "ok", "db": "down"}
