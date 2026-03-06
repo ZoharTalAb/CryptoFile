@@ -1,21 +1,15 @@
-import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 
-ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
+from core.config import DATABASE_URL
 
-DATABASE_URL = os.getenv("DATABASE_URL")
-
-# Allow SQLite fallback ONLY for tests
 if not DATABASE_URL:
-    if ENVIRONMENT == "test":
-        DATABASE_URL = "sqlite:///./test.db"
-    else:
-        raise RuntimeError("DATABASE_URL must be set")
+    raise RuntimeError("DATABASE_URL must be set")
 
 engine = create_engine(
     DATABASE_URL,
     pool_pre_ping=True,
+    future=True,
 )
 
 SessionLocal = sessionmaker(
