@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
@@ -17,6 +19,8 @@ from domain.exceptions import (
     InvalidCredentialsError,
     UserNotFoundError,
 )
+
+logger = logging.getLogger("cryptofile")
 
 app = FastAPI(
     title="CryptoFile API",
@@ -53,7 +57,14 @@ async def domain_error_handler(request: Request, exc: DomainError):
 
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception):
-    # Do not leak internal details
+    # Log full traceback internally, don't leak details to the client
+    logger.exception(
+        "Unhandled exception",
+        extra={
+            "path": request.url.path,
+            "method": request.method,
+        },
+    )
     return JSONResponse(status_code=500, content={"detail": "Internal server error"})
 
 
@@ -90,5 +101,5 @@ def health():
             conn.execute(text("SELECT 1"))
         return {"status": "ok", "db": "ok"}
     except Exception:
-        # Keep it simple & safe
+        logger.warning("Health check failed", extra={"component": "db"})
         return {"status": "ok", "db": "down"}
