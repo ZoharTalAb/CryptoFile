@@ -25,19 +25,14 @@ services:
         condition: service_healthy
     volumes:
       - .:/app
-      - ./uploads:/app/uploads
+      - uploads_data:/app/uploads
     env_file:
       - .env
     environment:
-      # keep DATABASE_URL here (non-secret) or move it into .env if you prefer
       DATABASE_URL: postgresql+psycopg2://cryptofile:cryptofile@db:5432/cryptofile
     ports:
       - "8000:8000"
-    command: >
-      sh -c "
-      alembic -c /app/alembic.ini upgrade head &&
-      uvicorn main:app --host 0.0.0.0 --port 8000
-      "
 
 volumes:
   postgres_data:
+  uploads_data:

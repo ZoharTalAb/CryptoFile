@@ -1,25 +1,30 @@
-FROM python:3.11-slim
+FROM python:3.11-slim-bookworm
 
 WORKDIR /app
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+ENV DEBIAN_FRONTEND=noninteractive
+
+# More stable apt behavior inside Docker
+RUN printf 'Acquire::Retries "5";\nAcquire::ForceIPv4 "true";\n' > /etc/apt/apt.conf.d/99custom \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends gosu \
+    && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
 RUN addgroup --system app && adduser --system --ingroup app app
 
-# Install dependencies first (better caching)
+# Install Python deps first
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy project
 COPY . .
 
-# Ensure permissions (uploads volume will be mounted)
-RUN mkdir -p /app/uploads && chown -R app:app /app
+# Prepare app dirs and entrypoint
+RUN mkdir -p /app/uploads \
+    && chmod +x /app/entrypoint.sh \
+    && chown -R app:app /app
 
-USER app
-
-WORKDIR /app/src
-
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+ENTRYPOINT ["/app/entrypoint.sh"]
