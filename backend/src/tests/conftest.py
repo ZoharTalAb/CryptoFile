@@ -11,7 +11,6 @@ os.environ.setdefault("ENVIRONMENT", "test")
 os.environ.setdefault("JWT_SECRET", "test_secret_32_chars_minimum_1234567890")
 os.environ.setdefault("DATABASE_URL", "sqlite:///./test.db")
 
-# Now it's safe to import project modules
 from infrastructure.db.session import engine, Base  # noqa: E402
 import infrastructure.db.models  # noqa: E402
 
@@ -26,3 +25,4 @@ def setup_database():
     Base.metadata.create_all(bind=engine)
     yield
     Base.metadata.drop_all(bind=engine)
+    engine.dispose()

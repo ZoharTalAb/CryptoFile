@@ -1,12 +1,11 @@
 import os
 from domain.interfaces.storage_interface import StorageInterface
 
+
 class LocalStorage(StorageInterface):
-    def __init__(self, base_path: str = "uploads"):
-        self.base_path = base_path
-        # יצירת תיקיית ה-uploads בשרת אם היא לא קיימת
-        if not os.path.exists(self.base_path):
-            os.makedirs(self.base_path)
+    def __init__(self, base_path: str | None = None):
+        self.base_path = base_path or "/app/uploads"
+        os.makedirs(self.base_path, exist_ok=True)
 
     def save(self, file_bytes: bytes, filename: str) -> str:
         file_path = os.path.join(self.base_path, filename)
