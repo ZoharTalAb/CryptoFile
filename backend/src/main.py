@@ -9,6 +9,7 @@ from presentation.routes import (
     stego_routes,
     share_routes,
     file_routes,
+    chat_routes,
 )
 from infrastructure.db.session import engine
 from core.config import CORS_ORIGINS, ENVIRONMENT
@@ -23,7 +24,7 @@ from domain.exceptions import (
 
 app = FastAPI(
     title="CryptoFile API",
-    description="מערכת להעברת הודעות מאובטחת באמצעות סטגנוגרפיה בתמונות, אודיו וטקסט",
+    description="מערכת להעברת הודעות מאובטחת באמצעות סטגנוגרפיה בתמונות, אודיו, טקסט וצ'אט בסיסי",
     version="1.0.0",
 )
 
@@ -69,7 +70,6 @@ async def user_not_found_handler(request: Request, exc: UserNotFoundError):
 
 @app.exception_handler(DomainError)
 async def domain_error_handler(request: Request, exc: DomainError):
-    # Domain/business errors are not "server errors"
     msg = str(exc).strip() or "Domain error"
     logger.info(
         "DomainError path=%s method=%s detail=%s", request.url.path, request.method, msg
@@ -79,7 +79,6 @@ async def domain_error_handler(request: Request, exc: DomainError):
 
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception):
-    # Never leak internals. Log full stacktrace server-side.
     logger.exception(
         "Unhandled exception path=%s method=%s", request.url.path, request.method
     )
@@ -94,6 +93,7 @@ app.include_router(user_routes.router)
 app.include_router(stego_routes.router)
 app.include_router(share_routes.router)
 app.include_router(file_routes.router)
+app.include_router(chat_routes.router)
 
 # ---------------------------
 # Basic Endpoints
@@ -102,7 +102,9 @@ app.include_router(file_routes.router)
 
 @app.get("/")
 async def root():
-    return {"message": "Welcome to CryptoFile API - Steganography Engine is Ready!"}
+    return {
+        "message": "Welcome to CryptoFile API - Steganography, File Sharing, and Chat are Ready!"
+    }
 
 
 @app.get("/health")
@@ -111,7 +113,7 @@ def health():
     Lightweight health endpoint.
     - status: API process is up
     - db: checks DB connectivity with SELECT 1
-    Returns 200 if ok, 503 if db down (better for monitors).
+    Returns 200 if ok, 503 if db down.
     """
     try:
         with engine.connect() as conn:
