@@ -41,6 +41,7 @@ from infrastructure.db.repositories.chat_message_repository_impl import (
 )
 from infrastructure.storage.local_storage import LocalStorage
 from infrastructure.stego.stego_dispatcher import StegoDispatcher
+from infrastructure.realtime.chat_connection_manager import chat_connection_manager
 
 from domain.enums.stego_type import StegoType
 from domain.exceptions import (
@@ -200,6 +201,24 @@ async def send_text_message(
             sender_id=current_user.id,
             text=request.text,
         )
+
+        other_participant = conversation_repo.get_other_participant(
+            conversation_id=conversation_id,
+            current_user_id=current_user.id,
+        )
+
+        if other_participant:
+            await chat_connection_manager.send_to_user(
+                other_participant.user_id,
+                {
+                    "event": "message_created",
+                    "conversation_id": conversation_id,
+                    "message": ChatMessageResponse.model_validate(
+                        result["message"]
+                    ).model_dump(mode="json"),
+                },
+            )
+
         return ChatMessageResponse.model_validate(result["message"])
 
     except ConversationNotFoundError as e:
@@ -251,6 +270,23 @@ async def send_stego_file_message(
             caption=caption,
         )
 
+        other_participant = conversation_repo.get_other_participant(
+            conversation_id=conversation_id,
+            current_user_id=current_user.id,
+        )
+
+        if other_participant:
+            await chat_connection_manager.send_to_user(
+                other_participant.user_id,
+                {
+                    "event": "message_created",
+                    "conversation_id": conversation_id,
+                    "message": ChatMessageResponse.model_validate(
+                        result["message"]
+                    ).model_dump(mode="json"),
+                },
+            )
+
         return ChatMessageResponse.model_validate(result["message"])
 
     except ConversationNotFoundError as e:
@@ -283,6 +319,22 @@ async def mark_conversation_read(
             conversation_id=conversation_id,
             current_user_id=current_user.id,
         )
+
+        other_participant = conversation_repo.get_other_participant(
+            conversation_id=conversation_id,
+            current_user_id=current_user.id,
+        )
+
+        if other_participant:
+            await chat_connection_manager.send_to_user(
+                other_participant.user_id,
+                {
+                    "event": "conversation_read",
+                    "conversation_id": conversation_id,
+                    "reader_user_id": current_user.id,
+                    "updated_count": result["updated_count"],
+                },
+            )
 
         return MarkConversationReadResponse(
             conversation_id=result["conversation"].id,

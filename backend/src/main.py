@@ -10,6 +10,7 @@ from presentation.routes import (
     share_routes,
     file_routes,
     chat_routes,
+    chat_ws_routes,
 )
 from infrastructure.db.session import engine
 from core.config import CORS_ORIGINS, ENVIRONMENT
@@ -94,6 +95,7 @@ app.include_router(stego_routes.router)
 app.include_router(share_routes.router)
 app.include_router(file_routes.router)
 app.include_router(chat_routes.router)
+app.include_router(chat_ws_routes.router)
 
 # ---------------------------
 # Basic Endpoints
@@ -103,7 +105,7 @@ app.include_router(chat_routes.router)
 @app.get("/")
 async def root():
     return {
-        "message": "Welcome to CryptoFile API - Steganography, File Sharing, and Chat are Ready!"
+        "message": "Welcome to CryptoFile API - Steganography, File Sharing, Chat, and Realtime are Ready!"
     }
 
 
