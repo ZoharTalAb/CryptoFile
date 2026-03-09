@@ -79,3 +79,19 @@ class FileAlreadySharedError(DomainError):
 
 class SelfShareNotAllowedError(DomainError):
     pass
+
+
+class ConversationNotFoundError(DomainError):
+    pass
+
+
+class ConversationAccessDeniedError(DomainError):
+    pass
+
+
+class InvalidConversationParticipantError(DomainError):
+    pass
+
+
+class MessageNotFoundError(DomainError):
+    pass

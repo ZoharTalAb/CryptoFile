@@ -54,6 +54,20 @@ class UserModel(Base):
         cascade="all, delete-orphan",
     )
 
+    conversation_participations: Mapped[List["ConversationParticipantModel"]] = (
+        relationship(
+            "ConversationParticipantModel",
+            back_populates="user",
+            cascade="all, delete-orphan",
+        )
+    )
+
+    sent_chat_messages: Mapped[List["ChatMessageModel"]] = relationship(
+        "ChatMessageModel",
+        back_populates="sender",
+        cascade="all, delete-orphan",
+    )
+
 
 class FileModel(Base):
     __tablename__ = "files"
@@ -81,6 +95,11 @@ class FileModel(Base):
         "FileShareModel",
         back_populates="file",
         cascade="all, delete-orphan",
+    )
+
+    chat_messages: Mapped[List["ChatMessageModel"]] = relationship(
+        "ChatMessageModel",
+        back_populates="file",
     )
 
 
@@ -138,6 +157,103 @@ class FileShareModel(Base):
         "UserModel",
         foreign_keys=[target_user_id],
         back_populates="received_shares",
+    )
+
+
+class ConversationModel(Base):
+    __tablename__ = "conversations"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+
+    participants: Mapped[List["ConversationParticipantModel"]] = relationship(
+        "ConversationParticipantModel",
+        back_populates="conversation",
+        cascade="all, delete-orphan",
+    )
+
+    messages: Mapped[List["ChatMessageModel"]] = relationship(
+        "ChatMessageModel",
+        back_populates="conversation",
+        cascade="all, delete-orphan",
+    )
+
+
+class ConversationParticipantModel(Base):
+    __tablename__ = "conversation_participants"
+    __table_args__ = (
+        UniqueConstraint(
+            "conversation_id",
+            "user_id",
+            name="uq_conversation_participants_conversation_user",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    conversation_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("conversations.id"), nullable=False
+    )
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id"), nullable=False
+    )
+
+    conversation: Mapped["ConversationModel"] = relationship(
+        "ConversationModel",
+        back_populates="participants",
+    )
+
+    user: Mapped["UserModel"] = relationship(
+        "UserModel",
+        back_populates="conversation_participations",
+    )
+
+
+class ChatMessageModel(Base):
+    __tablename__ = "chat_messages"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    conversation_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("conversations.id"), nullable=False
+    )
+    sender_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id"), nullable=False
+    )
+
+    message_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    text_content: Mapped[str | None] = mapped_column(String(2000), nullable=True)
+
+    file_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("files.id"), nullable=True
+    )
+    stego_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
+
+    status: Mapped[str] = mapped_column(String(50), nullable=False, default="sent")
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+    delivered_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    read_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+    conversation: Mapped["ConversationModel"] = relationship(
+        "ConversationModel",
+        back_populates="messages",
+    )
+
+    sender: Mapped["UserModel"] = relationship(
+        "UserModel",
+        back_populates="sent_chat_messages",
+    )
+
+    file: Mapped["FileModel | None"] = relationship(
+        "FileModel",
+        back_populates="chat_messages",
     )
 
 
