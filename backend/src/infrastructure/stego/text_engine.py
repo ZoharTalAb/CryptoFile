@@ -1,111 +1,130 @@
-from domain.exceptions import PayloadTooLargeError, CorruptedPayloadError
 from domain.interfaces.stego_engine import StegoEngine
+from domain.exceptions import CorruptedPayloadError, PayloadTooLargeError
 
 
 class TextStegoEngine(StegoEngine):
-    HEADER_BITS = 32  # 4 bytes length header (32 bits)
+    """
+    Text steganography using zero-width Unicode characters.
 
-    def embed(self, cover_bytes: bytes, encrypted_payload: bytes) -> bytes:
-        # המרה מ-bytes לטקסט
+    Each visible character can carry 2 bits by appending one zero-width marker:
+    - U+200B -> 00
+    - U+200C -> 01
+    - U+200D -> 10
+    - U+2060 -> 11
+
+    Advantages:
+    - Preserves visible appearance of the text
+    - Good capacity: 2 bits per visible character
+    - Deterministic and easy to extract
+
+    Note:
+    - If the text is passed through systems that strip zero-width characters,
+      the hidden payload may be lost.
+    """
+
+    HEADER_SIZE_BITS = 32
+
+    BIT_PAIR_TO_CHAR = {
+        "00": "\u200b",  # zero width space
+        "01": "\u200c",  # zero width non-joiner
+        "10": "\u200d",  # zero width joiner
+        "11": "\u2060",  # word joiner
+    }
+
+    CHAR_TO_BIT_PAIR = {value: key for key, value in BIT_PAIR_TO_CHAR.items()}
+
+    def _bytes_to_bits(self, data: bytes) -> str:
+        return "".join(f"{byte:08b}" for byte in data)
+
+    def _bits_to_bytes(self, bits: str) -> bytes:
+        if len(bits) % 8 != 0:
+            raise CorruptedPayloadError("Bit stream length is invalid")
+
+        return bytes(int(bits[i : i + 8], 2) for i in range(0, len(bits), 8))
+
+    def _chunk_bits_exact(self, bits: str, size: int = 2) -> list[str]:
+        """
+        Split bits into fixed-size chunks.
+        The caller must ensure the bit length is compatible with the format.
+        """
+        if len(bits) % size != 0:
+            raise CorruptedPayloadError("Bit stream length is not aligned correctly")
+
+        return [bits[i : i + size] for i in range(0, len(bits), size)]
+
+    def embed(self, cover_bytes: bytes, payload: bytes) -> bytes:
         try:
             cover_text = cover_bytes.decode("utf-8")
-        except UnicodeDecodeError:
-            raise CorruptedPayloadError("Cover text must be valid UTF-8")
+        except UnicodeDecodeError as exc:
+            raise CorruptedPayloadError("Cover text is not valid UTF-8") from exc
 
-        # 1. אורך + payload
-        length_header = len(encrypted_payload).to_bytes(4, "big")
-        full_payload = length_header + encrypted_payload
+        if not cover_text:
+            raise PayloadTooLargeError("Text cover is empty")
 
-        # 2. המרה לביטים
-        payload_bits = []
-        for byte in full_payload:
-            for i in range(8):
-                payload_bits.append((byte >> (7 - i)) & 1)
+        payload_bits = self._bytes_to_bits(payload)
+        header_bits = f"{len(payload):032b}"
+        full_bits = header_bits + payload_bits
 
-        # 3. פירוק לשורות
-        lines = cover_text.splitlines()
+        # header is 32 bits and payload is byte-aligned, so total is always divisible by 2
+        bit_pairs = self._chunk_bits_exact(full_bits, 2)
 
-        # 4. בדיקת קיבולת
-        if len(lines) < len(payload_bits):
-            raise PayloadTooLargeError()
+        visible_char_count = len(cover_text)
+        required_visible_chars = len(bit_pairs)
 
-        # 5. הטמעה
-        stego_lines = []
-        for i, bit in enumerate(payload_bits):
-            line = lines[i].rstrip()
+        if visible_char_count < required_visible_chars:
+            raise PayloadTooLargeError(
+                f"Text cover too small: need at least {required_visible_chars} visible characters, got {visible_char_count}"
+            )
 
-            if bit == 0:
-                line += " "
-            else:
-                line += "  "
+        encoded_parts: list[str] = []
+        pair_index = 0
 
-            stego_lines.append(line)
+        for ch in cover_text:
+            encoded_parts.append(ch)
 
-        # שאר השורות
-        stego_lines.extend(lines[len(payload_bits) :])
+            if pair_index < required_visible_chars:
+                encoded_parts.append(self.BIT_PAIR_TO_CHAR[bit_pairs[pair_index]])
+                pair_index += 1
 
-        stego_text = "\n".join(stego_lines)
-
-        # החזרה ל-bytes
-        return stego_text.encode("utf-8")
+        return "".join(encoded_parts).encode("utf-8")
 
     def extract(self, stego_bytes: bytes) -> bytes:
-        # המרה מ-bytes לטקסט
         try:
             stego_text = stego_bytes.decode("utf-8")
-        except UnicodeDecodeError:
-            raise CorruptedPayloadError("Stego text must be valid UTF-8")
+        except UnicodeDecodeError as exc:
+            raise CorruptedPayloadError("Stego text is not valid UTF-8") from exc
 
-        lines = stego_text.splitlines()
+        bit_pairs: list[str] = []
+        i = 0
+        n = len(stego_text)
 
-        # 1. קריאת header
-        if len(lines) < self.HEADER_BITS:
-            raise CorruptedPayloadError()
+        while i < n:
+            ch = stego_text[i]
 
-        header_bits = []
-        for i in range(self.HEADER_BITS):
-            trailing_spaces = len(lines[i]) - len(lines[i].rstrip(" "))
+            # Skip stray zero-width chars that appear unexpectedly
+            if ch in self.CHAR_TO_BIT_PAIR:
+                i += 1
+                continue
 
-            if trailing_spaces == 1:
-                header_bits.append(0)
-            elif trailing_spaces == 2:
-                header_bits.append(1)
+            if i + 1 < n and stego_text[i + 1] in self.CHAR_TO_BIT_PAIR:
+                bit_pairs.append(self.CHAR_TO_BIT_PAIR[stego_text[i + 1]])
+                i += 2
             else:
-                raise CorruptedPayloadError()
+                i += 1
 
-        # 2. המרת header לאורך
-        length_bytes = bytearray()
-        for i in range(0, self.HEADER_BITS, 8):
-            byte = 0
-            for j in range(8):
-                byte = (byte << 1) | header_bits[i + j]
-            length_bytes.append(byte)
+        bit_stream = "".join(bit_pairs)
 
-        payload_length = int.from_bytes(length_bytes, "big")
+        if len(bit_stream) < self.HEADER_SIZE_BITS:
+            raise CorruptedPayloadError("Missing payload length header")
 
-        # 3. בדיקת תקינות
-        total_payload_bits = payload_length * 8
-        if len(lines) < self.HEADER_BITS + total_payload_bits:
-            raise CorruptedPayloadError()
+        header_bits = bit_stream[: self.HEADER_SIZE_BITS]
+        payload_len = int(header_bits, 2)
 
-        # 4. חילוץ ביטים
-        payload_bits = []
-        for i in range(self.HEADER_BITS, self.HEADER_BITS + total_payload_bits):
-            trailing_spaces = len(lines[i]) - len(lines[i].rstrip(" "))
+        payload_bits_needed = payload_len * 8
+        total_bits_needed = self.HEADER_SIZE_BITS + payload_bits_needed
 
-            if trailing_spaces == 1:
-                payload_bits.append(0)
-            elif trailing_spaces == 2:
-                payload_bits.append(1)
-            else:
-                raise CorruptedPayloadError()
+        if len(bit_stream) < total_bits_needed:
+            raise CorruptedPayloadError("Stego text does not contain full payload")
 
-        # 5. ביטים → bytes
-        payload = bytearray()
-        for i in range(0, len(payload_bits), 8):
-            byte = 0
-            for j in range(8):
-                byte = (byte << 1) | payload_bits[i + j]
-            payload.append(byte)
-
-        return bytes(payload)
+        payload_bits = bit_stream[self.HEADER_SIZE_BITS : total_bits_needed]
+        return self._bits_to_bytes(payload_bits)
