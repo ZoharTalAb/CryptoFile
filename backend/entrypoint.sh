@@ -1,12 +1,8 @@
 #!/bin/sh
 set -e
 
-# יצירת התיקייה ומתן הרשאות מלאות
 mkdir -p /app/uploads
 chmod -R 777 /app/uploads
-chown -R app:app /app/uploads
-
-mkdir -p /app/uploads
 chown -R app:app /app/uploads
 
 cd /app

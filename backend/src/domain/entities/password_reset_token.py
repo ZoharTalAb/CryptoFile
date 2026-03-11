@@ -1,0 +1,16 @@
+from dataclasses import dataclass
+from datetime import datetime
+
+
+@dataclass
+class PasswordResetToken:
+    id: int | None
+    user_id: int
+    token_hash: str
+    expires_at: datetime
+    used_at: datetime | None
+    created_at: datetime
+
+    @property
+    def is_used(self) -> bool:
+        return self.used_at is not None

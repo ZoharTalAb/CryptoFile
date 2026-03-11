@@ -1,0 +1,14 @@
+$kind: http-request
+url: "{{baseUrl}}/share"
+method: POST
+headers:
+  Authorization: Bearer {{token1}}
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "file_id": "{{fileId}}",
+      "target_email": "{{user2Email}}"
+    }
+order: 5000

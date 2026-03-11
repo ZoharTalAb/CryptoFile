@@ -1,0 +1,30 @@
+name: CryptoFile Local
+values:
+  - key: baseUrl
+    value: 'http://localhost:8000'
+    enabled: true
+  - key: token1
+    value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwiZW1haWwiOiJ6b2hhckBleGFtcGxlLmNvbSIsImV4cCI6MTc3MzA1MTAxNH0.cgyz55tt6qUqXval9wBCwgwIibP1X_ea384JvnrR91w
+    enabled: true
+  - key: token2
+    value: |2
+          "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyIiwiZW1haWwiOiJmcmllbmRAZXhhbXBsZS5jb20iLCJleHAiOjE3NzMwNTEwNjd9.gNCwyLF18AvP_oP5qSyWMwxbfzs8l3tJxV-eoepAaqY",
+    enabled: true
+  - key: conversationId
+    value: '1'
+    enabled: true
+  - key: fileId
+    value: '1'
+    enabled: true
+  - key: messageId
+    value: '1'
+    enabled: true
+  - key: user1Email
+    value: user1@example.com
+    enabled: true
+  - key: user2Email
+    value: user2@example.com
+    enabled: true
+  - key: password
+    value: '12345678'
+    enabled: true

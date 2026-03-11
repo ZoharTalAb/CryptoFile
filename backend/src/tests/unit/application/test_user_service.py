@@ -6,13 +6,11 @@ from infrastructure.db.repositories.user_repository_impl import UserRepositoryIm
 
 from domain.exceptions import (
     InvalidCredentialsError,
-    UserNotFoundError,
-)
-
-from application.users.user_service import (
-    UserService,
     UserAlreadyExistsError,
 )
+
+from application.users.user_service import UserService
+from tests.conftest import TEST_PASSWORD
 
 
 def clear_users_table(session):
@@ -30,12 +28,12 @@ def test_user_registration():
 
         user = service.register(
             email="test@example.com",
-            password="securepassword",
+            password=TEST_PASSWORD,
         )
 
         assert user.id is not None
         assert user.email == "test@example.com"
-        assert user.password_hash.startswith("$2b$")
+        assert user.password_hash.startswith("$argon2id$")
     finally:
         session.close()
 
@@ -50,13 +48,13 @@ def test_duplicate_user_registration():
 
         service.register(
             email="duplicate@example.com",
-            password="pass",
+            password=TEST_PASSWORD,
         )
 
         with pytest.raises(UserAlreadyExistsError):
             service.register(
                 email="duplicate@example.com",
-                password="pass",
+                password=TEST_PASSWORD,
             )
     finally:
         session.close()
@@ -72,12 +70,12 @@ def test_successful_login():
 
         service.register(
             email="login@example.com",
-            password="mypassword",
+            password=TEST_PASSWORD,
         )
 
         user = service.login(
             email="login@example.com",
-            password="mypassword",
+            password=TEST_PASSWORD,
         )
 
         assert user.email == "login@example.com"
@@ -95,13 +93,13 @@ def test_login_wrong_password():
 
         service.register(
             email="wrongpass@example.com",
-            password="correct",
+            password=TEST_PASSWORD,
         )
 
         with pytest.raises(InvalidCredentialsError):
             service.login(
                 email="wrongpass@example.com",
-                password="incorrect",
+                password="WrongPassword999",
             )
     finally:
         session.close()
@@ -115,10 +113,10 @@ def test_login_user_not_found():
         repo = UserRepositoryImpl(session)
         service = UserService(repo)
 
-        with pytest.raises(UserNotFoundError):
+        with pytest.raises(InvalidCredentialsError):
             service.login(
                 email="doesnotexist@example.com",
-                password="pass",
+                password=TEST_PASSWORD,
             )
     finally:
         session.close()

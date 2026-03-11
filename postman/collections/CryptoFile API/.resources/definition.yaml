@@ -1,0 +1,13 @@
+$kind: collection
+description: "Rebuilt collection for CryptoFile backend: auth, users, stego,
+  files, sharing, chat, and extract flows."
+variables:
+  baseUrl: http://localhost:8000
+  token1: ""
+  token2: ""
+  conversationId: "1"
+  fileId: "1"
+  messageId: "1"
+  user1Email: user1@example.com
+  user2Email: user2@example.com
+  password: "12345678"

@@ -31,6 +31,7 @@ from domain.exceptions import (
     ConversationAccessDeniedError,
 )
 from domain.enums.chat_message_status import ChatMessageStatus
+from tests.conftest import TEST_PASSWORD
 
 
 def clear_tables(session):
@@ -47,7 +48,7 @@ def clear_tables(session):
     session.commit()
 
 
-def create_user(service, email, password="12345678"):
+def create_user(service, email, password=TEST_PASSWORD):
     return service.register(email=email, password=password)
 
 

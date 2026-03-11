@@ -18,6 +18,7 @@ from infrastructure.db.repositories.file_share_repository_impl import (
 
 from application.users.user_service import UserService
 from application.files.list_files_use_case import ListFilesUseCase
+from tests.conftest import TEST_PASSWORD
 
 
 def clear_tables(session):
@@ -31,7 +32,7 @@ def clear_tables(session):
     session.commit()
 
 
-def create_user(service, email, password="12345678"):
+def create_user(service, email, password=TEST_PASSWORD):
     return service.register(email=email, password=password)
 
 

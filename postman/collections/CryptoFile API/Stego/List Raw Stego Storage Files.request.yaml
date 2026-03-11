@@ -1,0 +1,4 @@
+$kind: http-request
+url: "{{baseUrl}}/stego/files"
+method: GET
+order: 3000
