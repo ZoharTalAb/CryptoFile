@@ -9,7 +9,10 @@ ENV DEBIAN_FRONTEND=noninteractive
 # More stable apt behavior inside Docker
 RUN printf 'Acquire::Retries "5";\nAcquire::ForceIPv4 "true";\n' > /etc/apt/apt.conf.d/99custom \
     && apt-get update \
-    && apt-get install -y --no-install-recommends gosu \
+    && apt-get install -y --no-install-recommends \
+       gosu \
+       libgl1 \
+       libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
