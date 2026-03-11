@@ -1,0 +1,6 @@
+$kind: http-request
+url: "{{baseUrl}}/files/{{fileId}}/download"
+method: GET
+headers:
+  Authorization: Bearer {{token1}}
+order: 3000

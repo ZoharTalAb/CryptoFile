@@ -1,0 +1,13 @@
+$kind: http-request
+url: "{{baseUrl}}/chat/conversations/{{conversationId}}/messages/text"
+method: POST
+headers:
+  Authorization: Bearer {{token1}}
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "text": "hello from chat"
+    }
+order: 5000

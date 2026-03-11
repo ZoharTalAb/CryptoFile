@@ -1,0 +1,20 @@
+$kind: http-request
+description: Select a valid image/audio/text carrier file in Postman before sending.
+url: "{{baseUrl}}/stego/embed"
+method: POST
+headers:
+  Authorization: Bearer {{token1}}
+body:
+  type: formdata
+  content:
+    - type: text
+      key: stego_type
+      value: image
+    - type: text
+      key: secret_data
+      value: hidden hello
+    - type: file
+      key: file
+      src:
+        - ""
+order: 1000

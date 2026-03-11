@@ -1,0 +1,23 @@
+$kind: http-request
+description: Select a valid carrier file before sending.
+url: "{{baseUrl}}/chat/conversations/{{conversationId}}/messages/file"
+method: POST
+headers:
+  Authorization: Bearer {{token1}}
+body:
+  type: formdata
+  content:
+    - type: text
+      key: stego_type
+      value: audio
+    - type: text
+      key: secret_data
+      value: super secret payload
+    - type: text
+      key: caption
+      value: check this file
+    - type: file
+      key: file
+      src:
+        - ""
+order: 6000

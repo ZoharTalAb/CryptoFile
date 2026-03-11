@@ -1,0 +1,6 @@
+$kind: http-request
+url: "{{baseUrl}}/chat/conversations/{{conversationId}}/read"
+method: POST
+headers:
+  Authorization: Bearer {{token2}}
+order: 7000
