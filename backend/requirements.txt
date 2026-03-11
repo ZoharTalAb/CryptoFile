@@ -37,10 +37,6 @@ typing_extensions==4.15.0
 uvicorn==0.41.0
 email-validator
 websockets==15.0.1
-<<<<<<< HEAD
 argon2-cffi==21.3.0
-email-validator
-=======
 opencv-python==4.11.0.86
 python-dotenv==1.0.1
->>>>>>> main
