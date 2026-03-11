@@ -39,6 +39,7 @@ from domain.exceptions import (
     ConversationAccessDeniedError,
     FileNotFoundError,
 )
+from tests.conftest import TEST_PASSWORD
 
 TEST_UPLOADS_PATH = "tests_tmp_uploads"
 
@@ -57,7 +58,7 @@ def clear_tables(session):
     session.commit()
 
 
-def create_user(service, email, password="12345678"):
+def create_user(service, email, password=TEST_PASSWORD):
     return service.register(email=email, password=password)
 
 

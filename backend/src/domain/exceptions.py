@@ -54,6 +54,34 @@ class UserAlreadyExistsError(DomainError):
     pass
 
 
+class PasswordPolicyViolationError(DomainError):
+    pass
+
+
+class PasswordReuseError(DomainError):
+    pass
+
+
+class PasswordExpiredError(DomainError):
+    pass
+
+
+class AccountLockedError(DomainError):
+    pass
+
+
+class PasswordResetTokenInvalidError(DomainError):
+    pass
+
+
+class PasswordResetTokenExpiredError(DomainError):
+    pass
+
+
+class PasswordResetTokenUsedError(DomainError):
+    pass
+
+
 # ---------------------------
 # File/Share errors
 # ---------------------------

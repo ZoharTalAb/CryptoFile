@@ -1,22 +1,20 @@
 from datetime import datetime, timedelta, timezone
-from jose import jwt, JWTError
 
-from core.config import (
-    JWT_SECRET,
-    JWT_ALGORITHM,
-    JWT_EXP_MINUTES,
-)
+from jose import JWTError, jwt
+
+from core.config import JWT_ALGORITHM, JWT_EXP_MINUTES, JWT_SECRET
 
 
 class JWTService:
 
     @staticmethod
-    def create_token(user_id: int, email: str) -> str:
+    def create_token(user_id: int, email: str, token_version: int = 0) -> str:
         expire = datetime.now(timezone.utc) + timedelta(minutes=JWT_EXP_MINUTES)
 
         payload = {
             "sub": str(user_id),
             "email": email,
+            "ver": token_version,
             "exp": expire,
         }
 

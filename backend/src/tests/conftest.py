@@ -11,6 +11,9 @@ os.environ.setdefault("ENVIRONMENT", "test")
 os.environ.setdefault("JWT_SECRET", "test_secret_32_chars_minimum_1234567890")
 os.environ.setdefault("DATABASE_URL", "sqlite:///./test.db")
 
+# Shared strong password for all auth-related tests
+TEST_PASSWORD = "VeryStrongPassword123"
+
 from infrastructure.db.session import engine, Base  # noqa: E402
 import infrastructure.db.models  # noqa: E402
 
