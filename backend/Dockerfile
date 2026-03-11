@@ -10,9 +10,9 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN printf 'Acquire::Retries "5";\nAcquire::ForceIPv4 "true";\n' > /etc/apt/apt.conf.d/99custom \
     && apt-get update \
     && apt-get install -y --no-install-recommends \
-       gosu \
-       libgl1 \
-       libglib2.0-0 \
+    gosu \
+    libgl1 \
+    libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
@@ -27,6 +27,7 @@ COPY . .
 
 # Prepare app dirs and entrypoint
 RUN mkdir -p /app/uploads \
+    && sed -i 's/\r$//' /app/entrypoint.sh \
     && chmod +x /app/entrypoint.sh \
     && chown -R app:app /app
 
