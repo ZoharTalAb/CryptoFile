@@ -8,99 +8,153 @@ function SharePage() {
   const [inbox, setInbox] = useState([]);
   const [loading, setLoading] = useState(false);
   
-  // טופס שיתוף
+  // States לטופס השיתוף
   const [selectedFileId, setSelectedFileId] = useState('');
   const [targetEmail, setTargetEmail] = useState('');
-  const [statusMsg, setStatusMsg] = useState({ text: '', isError: false });
+  const [status, setStatus] = useState({ text: '', isError: false });
 
-  // פונקציה למשיכת כל הנתונים במכה אחת (לפי ה-ListFilesUseCase)
+  // 1. טעינת נתונים (גם הקבצים שלי וגם האינבוקס מגיעים מאותו מקום)
   const fetchData = async () => {
     setLoading(true);
     try {
-      const response = await api.get('/files/'); // וודאי שזה הנתיב שמפעיל את ListFilesUseCase
-      setOwnedFiles(response.data.owned_files || []);
-      setInbox(response.data.shared_with_me || []);
+      const res = await api.get('/files/');
+      setOwnedFiles(res.data.owned_files || []);
+      setInbox(res.data.shared_with_me || []);
     } catch (err) {
-      console.error("שגיאה בטעינת קבצים:", err);
+      console.error("טעינת נתונים נכשלה");
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  useEffect(() => { fetchData(); }, []);
 
+  // 2. פונקציית השיתוף
   const handleShare = async (e) => {
     e.preventDefault();
-    setStatusMsg({ text: '', isError: false });
+    setStatus({ text: '', isError: false });
+
+    if (!selectedFileId || !targetEmail) {
+      setStatus({ text: 'נא לבחור קובץ ולהזין אימייל', isError: true });
+      return;
+    }
 
     try {
+      // שליחה בדיוק לפי ה-ShareRequest בבאקנד
       await api.post('/share/', {
         file_id: parseInt(selectedFileId),
         target_email: targetEmail
       });
-      setStatusMsg({ text: 'הקובץ שותף בהצלחה!', isError: false });
+
+      setStatus({ text: `הקובץ שותף בהצלחה עם ${targetEmail}!`, isError: false });
       setTargetEmail('');
-      fetchData(); // רענון הרשימות
+      setSelectedFileId('');
+      fetchData(); // רענון כדי לראות אם משהו השתנה
     } catch (err) {
-      setStatusMsg({ text: err.response?.data?.detail || 'שיתוף נכשל', isError: true });
+      const errorMsg = err.response?.data?.detail || 'השיתוף נכשל';
+      setStatus({ text: errorMsg, isError: true });
+    }
+  };
+
+  // פונקציית הורדה לקבצים שקיבלת
+  const downloadFile = async (fileId, filename) => {
+    try {
+      const response = await api.get(`/files/${fileId}/download`, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err) {
+      alert("הורדה נכשלה");
     }
   };
 
   return (
-    <div style={{ padding: '40px', direction: 'rtl', color: 'white' }}>
-      <h1 style={{ color: '#60a5fa' }}>ניהול ושיתוף קבצים</h1>
+    <div style={{ padding: '40px', direction: 'rtl', color: 'white', maxWidth: '1100px', margin: '0 auto' }}>
+      <h1 style={{ color: '#60a5fa', marginBottom: '30px' }}>מרכז שיתוף קבצים</h1>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px', marginTop: '30px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '40px' }}>
         
-        {/* שליחת קובץ */}
-        <section style={{ background: '#1f2937', padding: '20px', borderRadius: '10px' }}>
-          <h3>שיתוף קובץ חדש</h3>
+        {/* חלק א': טופס שליחה */}
+        <section style={{ background: '#1f2937', padding: '25px', borderRadius: '15px', border: '1px solid #374151', alignSelf: 'start' }}>
+          <h2 style={{ fontSize: '1.2rem', marginBottom: '20px', color: '#10b981' }}>שתפי קובץ עם חברה</h2>
+          
           <form onSubmit={handleShare}>
-            <label>בחר קובץ מהמאגר שלך:</label>
-            <select 
-              value={selectedFileId} 
-              onChange={(e) => setSelectedFileId(e.target.value)}
-              style={{ width: '100%', padding: '10px', margin: '10px 0', borderRadius: '5px' }}
-            >
-              <option value="">-- בחר קובץ --</option>
-              {ownedFiles.map(f => (
-                <option key={f.id} value={f.id}>{f.original_filename || f.filename}</option>
-              ))}
-            </select>
+            <div style={{ marginBottom: '15px' }}>
+              <label>בחרי קובץ מהארכיון שלך:</label>
+              <select 
+                value={selectedFileId} 
+                onChange={(e) => setSelectedFileId(e.target.value)}
+                style={inputStyle}
+              >
+                <option value="">-- בחרי קובץ מוטמן --</option>
+                {ownedFiles.map(f => (
+                  <option key={f.id} value={f.id}>{f.filename}</option>
+                ))}
+              </select>
+            </div>
 
-            <input 
-              type="email" 
-              placeholder="אימייל הנמען" 
-              value={targetEmail}
-              onChange={(e) => setTargetEmail(e.target.value)}
-              style={{ width: '100%', padding: '10px', marginBottom: '10px', borderRadius: '5px' }}
-            />
-            <button type="submit" style={{ width: '100%', padding: '10px', background: '#10b981', color: 'white', border: 'none', borderRadius: '5px' }}>
-              שתף קובץ
-            </button>
-            {statusMsg.text && <p style={{ color: statusMsg.isError ? '#ef4444' : '#10b981' }}>{statusMsg.text}</p>}
+            <div style={{ marginBottom: '20px' }}>
+              <label>אימייל הנמענת:</label>
+              <input 
+                type="email" 
+                placeholder="maya@example.com"
+                value={targetEmail}
+                onChange={(e) => setTargetEmail(e.target.value)}
+                style={inputStyle}
+              />
+            </div>
+
+            <button type="submit" style={buttonStyle}>שתפי עכשיו</button>
+
+            {status.text && (
+              <p style={{ marginTop: '15px', color: status.isError ? '#ef4444' : '#10b981', textAlign: 'center' }}>
+                {status.text}
+              </p>
+            )}
           </form>
         </section>
 
-        {/* Inbox */}
-        <section style={{ background: '#1f2937', padding: '20px', borderRadius: '10px' }}>
-          <h3>קבצים ששותפו איתי</h3>
-          {inbox.length === 0 ? <p>אין קבצים חדשים.</p> : (
-            inbox.map(file => (
-              <div key={file.id} style={{ borderBottom: '1px solid #374151', padding: '10px 0', display: 'flex', justifyContent: 'space-between' }}>
-                <span>{file.original_filename}</span>
-                <button onClick={() => window.open(`${process.env.REACT_APP_API_URL}/files/download/${file.id}`)} style={{ background: '#3b82f6', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px' }}>
-                  הורד
-                </button>
-              </div>
-            ))
+        {/* חלק ב': Inbox - קבצים ששותפו איתי */}
+        <section>
+          <h2 style={{ fontSize: '1.2rem', marginBottom: '20px', color: '#60a5fa' }}>תיבת נכנס (Inbox)</h2>
+          {loading ? <p>טוען הודעות...</p> : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+              {inbox.length === 0 ? (
+                <p style={{ color: '#9ca3af', fontStyle: 'italic' }}>עוד לא שיתפו איתך קבצים.</p>
+              ) : (
+                inbox.map((item) => (
+                  <div key={item.id} style={inboxItemStyle}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 'bold' }}>{item.filename}</div>
+                      <div style={{ fontSize: '0.8rem', color: '#9ca3af' }}>
+                        התקבל ב: {new Date(item.created_at).toLocaleDateString('he-IL')}
+                      </div>
+                    </div>
+                    <button 
+                      onClick={() => downloadFile(item.id, item.filename)}
+                      style={downloadButtonStyle}
+                    >
+                      הורדה וחילוץ
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
           )}
         </section>
       </div>
     </div>
   );
 }
+
+// עיצובים
+const inputStyle = { width: '100%', padding: '12px', marginTop: '8px', borderRadius: '8px', background: '#374151', color: 'white', border: '1px solid #4b5563' };
+const buttonStyle = { width: '100%', padding: '12px', background: '#10b981', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' };
+const inboxItemStyle = { background: '#374151', padding: '15px', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid #4b5563' };
+const downloadButtonStyle = { padding: '8px 15px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.9rem' };
 
 export default SharePage;
