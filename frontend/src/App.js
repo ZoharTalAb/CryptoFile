@@ -5,6 +5,12 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+
+// הייבוא של הדפים החדשים שלנו - ודאי שהשמות תואמים לקבצים בתיקיית pages
+import StegoPage from './pages/StegoPage';
+import SharePage from './pages/SharePage';
+import FilesPage from './pages/FilesPage';
+
 import './App.css';
 
 function App() {
@@ -12,7 +18,6 @@ function App() {
     <AuthProvider>
       <BrowserRouter>
         <div className="App" style={{ direction: 'rtl', minHeight: '100vh', backgroundColor: '#111827' }}>
-          {/* התפריט יופיע בכל דף (הוא מתוכנת להעלם אם לא מחוברים) */}
           <Navbar />
           
           <Routes>
@@ -20,29 +25,35 @@ function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             
-            {/* דפים מוגנים - רק משתמש מחובר יכול לראות */}
+            {/* דפים מוגנים - הוספנו את הדפים החדשים כאן */}
             <Route path="/dashboard" element={
               <ProtectedRoute>
                 <div style={{ padding: '40px', textAlign: 'center', color: 'white' }}>
                   <h1 style={{ color: '#60a5fa' }}>ברוכים הבאים ל-CryptoFile! 🚀</h1>
-                  <p>התשתית מוכנה ב-100%. כל הקריאות לשרת יעבדו עכשיו עם הטוקן שלך.</p>
-                  
-                  <div style={{ 
-                    marginTop: '40px', 
-                    padding: '20px', 
-                    border: '1px dashed #4b5563', 
-                    borderRadius: '8px',
-                    display: 'inline-block' 
-                  }}>
-                    <h3 style={{ color: '#9ca3af' }}>הודעה לחברה שלך:</h3>
-                    <p>היי! הכל מוכן. את יכולה להתחיל ליצור דפים חדשים בתיקיית pages <br/> 
-                    ולהוסיף אותם כאן בתוך ה-Routes.</p>
-                  </div>
+                  <p>התשתית מוכנה. בחרי פעולה מהתפריט למעלה כדי להתחיל.</p>
                 </div>
               </ProtectedRoute>
             } />
 
-            {/* אם המשתמש מגיע לכתובת לא ידועה, נשלח אותו לדאשבורד */}
+            <Route path="/stego" element={
+              <ProtectedRoute>
+                <StegoPage />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/share" element={
+              <ProtectedRoute>
+                <SharePage />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/files" element={
+              <ProtectedRoute>
+                <FilesPage />
+              </ProtectedRoute>
+            } />
+
+            {/* ברירת מחדל - חזרה לדאשבורד */}
             <Route path="*" element={<Navigate to="/dashboard" />} />
           </Routes>
         </div>
