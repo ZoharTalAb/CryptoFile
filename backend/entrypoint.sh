@@ -9,4 +9,4 @@ cd /app
 gosu app alembic -c /app/alembic.ini upgrade head
 
 cd /app/src
-exec gosu app uvicorn main:app --host 0.0.0.0 --port 8000
+exec gosu app uvicorn main:app --host 0.0.0.0 --port "${PORT:-8000}"
