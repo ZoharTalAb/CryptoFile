@@ -1,15 +1,16 @@
-import { ReactNode } from "react";
+import type { ReactNode } from "react";
 import { Navigate, useLocation } from "react-router-dom";
+import { useAuth } from "../../features/auth/context/AuthContext";
 
-type ProtectedRouteProps = {
-  children: ReactNode;
-};
-
-export function ProtectedRoute({ children }: ProtectedRouteProps) {
+export function ProtectedRoute({ children }: { children: ReactNode }) {
+  const { user, loading } = useAuth();
   const location = useLocation();
-  const token = localStorage.getItem("cryptofile_token");
 
-  if (!token) {
+  if (loading) {
+    return <div className="auth-loading">Loading...</div>;
+  }
+
+  if (!user) {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
