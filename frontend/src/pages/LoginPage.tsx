@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight, Lock, MessageSquareMore, ShieldCheck } from "lucide-react";
 import { useEffect, useState } from "react";
 import { authService } from "../features/auth/services/auth.service";
+import { useAuth } from "../features/auth/context/AuthContext";
 
 const appear = (delay = 0) => ({
   initial: { opacity: 0, y: 20 },
@@ -16,38 +17,25 @@ const appear = (delay = 0) => ({
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const { user, loading, refreshSession } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const [loading, setLoading] = useState(false);
-  const [checkingSession, setCheckingSession] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const token = authService.getToken();
-
-    if (!token) {
-      setCheckingSession(false);
-      return;
+    if (!loading && user) {
+      navigate("/dashboard", { replace: true });
     }
-
-    authService
-      .getCurrentUser()
-      .then(() => {
-        navigate("/dashboard", { replace: true });
-      })
-      .catch(() => {
-        authService.clearToken();
-        setCheckingSession(false);
-      });
-  }, [navigate]);
+  }, [loading, user, navigate]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     setError("");
-    setLoading(true);
+    setSubmitting(true);
 
     try {
       const response = await authService.login({
@@ -56,17 +44,18 @@ export function LoginPage() {
       });
 
       authService.saveToken(response.access_token);
+      await refreshSession();
       navigate("/dashboard", { replace: true });
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Something went wrong. Please try again.";
       setError(message);
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   }
 
-  if (checkingSession) {
+  if (loading) {
     return (
       <div className="auth-screen auth-screen--login">
         <div className="auth-screen__backdrop" />
@@ -127,7 +116,7 @@ export function LoginPage() {
                 autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                disabled={loading}
+                disabled={submitting}
                 required
               />
             </label>
@@ -141,7 +130,7 @@ export function LoginPage() {
                 autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                disabled={loading}
+                disabled={submitting}
                 required
               />
             </label>
@@ -162,10 +151,10 @@ export function LoginPage() {
             <button
               type="submit"
               className="button button--primary button--full"
-              disabled={loading}
+              disabled={submitting}
             >
-              {loading ? "Signing In..." : "Sign In"}
-              {!loading && <ArrowRight size={16} />}
+              {submitting ? "Signing In..." : "Sign In"}
+              {!submitting && <ArrowRight size={16} />}
             </button>
           </motion.form>
 
