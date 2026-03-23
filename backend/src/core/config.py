@@ -49,3 +49,13 @@ if ENVIRONMENT == "production":
 
 # In dev/test we still require JWT_SECRET for safety
 _require("JWT_SECRET", JWT_SECRET)
+
+
+# Email (SMTP)
+SMTP_HOST = os.getenv("SMTP_HOST")
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+SMTP_USERNAME = os.getenv("SMTP_USERNAME")
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
+SMTP_FROM_EMAIL = os.getenv("SMTP_FROM_EMAIL")
+
+FRONTEND_BASE_URL = os.getenv("FRONTEND_BASE_URL", "http://localhost:5173")

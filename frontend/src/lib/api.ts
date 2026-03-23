@@ -3,6 +3,13 @@ import axios from "axios";
 const baseURL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
+function getStoredToken() {
+  return (
+    localStorage.getItem("cryptofile_token") ??
+    sessionStorage.getItem("cryptofile_token")
+  );
+}
+
 export const api = axios.create({
   baseURL,
   headers: {
@@ -11,7 +18,7 @@ export const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("cryptofile_token");
+  const token = getStoredToken();
 
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;

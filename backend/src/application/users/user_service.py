@@ -4,6 +4,7 @@ from application.auth.login_protection_service import LoginProtectionService
 from application.auth.password_hasher import PasswordHasherService
 from application.auth.password_policy_service import PasswordPolicyService
 from application.auth.password_reset_service import PasswordResetService
+from backend.src.application.email.email_service import EmailService
 from core.config import (
     ENVIRONMENT,
     PASSWORD_EXPIRY_DAYS,
@@ -306,12 +307,14 @@ class UserService:
             user_agent=user_agent,
         )
 
+    from application.email.email_service import EmailService
+
     def request_password_reset(
         self,
         email: str,
         ip_address: str | None = None,
         user_agent: str | None = None,
-    ) -> str | None:
+    ) -> None:
         if self._password_reset_repository is None:
             raise RuntimeError("Password reset repository is not configured")
 
@@ -328,20 +331,11 @@ class UserService:
                 ip_address=ip_address,
                 user_agent=user_agent,
             )
-            return None
+            return
 
         active_token = self._password_reset_repository.get_active_by_user_id(user.id)
         if active_token:
-            self._audit(
-                user_id=user.id,
-                email=user.email,
-                event_type="password_reset_requested",
-                success=False,
-                reason_code="active_token_exists",
-                ip_address=ip_address,
-                user_agent=user_agent,
-            )
-            return None
+            return
 
         since = datetime.now(timezone.utc) - timedelta(
             minutes=PASSWORD_RESET_WINDOW_MINUTES
@@ -351,18 +345,10 @@ class UserService:
         )
 
         if recent_count >= PASSWORD_RESET_MAX_REQUESTS:
-            self._audit(
-                user_id=user.id,
-                email=user.email,
-                event_type="password_reset_requested",
-                success=False,
-                reason_code="rate_limited",
-                ip_address=ip_address,
-                user_agent=user_agent,
-            )
-            return None
+            return
 
         now = datetime.now(timezone.utc)
+
         raw_token = self._password_reset_service.generate_raw_token()
         token_hash = self._password_reset_service.hash_token(raw_token)
 
@@ -377,20 +363,19 @@ class UserService:
             )
         )
 
+        # 🔥 NEW: send email instead of returning token
+        email_service = EmailService()
+        email_service.send_password_reset_email(user.email, raw_token)
+
         self._audit(
             user_id=user.id,
             email=user.email,
             event_type="password_reset_requested",
             success=True,
-            reason_code="token_created",
+            reason_code="email_sent",
             ip_address=ip_address,
             user_agent=user_agent,
         )
-
-        if ENVIRONMENT != "production" and RESET_TOKEN_DEV_RETURN:
-            return raw_token
-
-        return None
 
     def confirm_password_reset(
         self,

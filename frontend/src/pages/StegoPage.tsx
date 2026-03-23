@@ -1,5 +1,11 @@
 import { useMemo, useState } from "react";
-import { Download, FileKey2, ScanSearch, WandSparkles } from "lucide-react";
+import {
+  Download,
+  FileKey2,
+  ScanSearch,
+  Upload,
+  WandSparkles,
+} from "lucide-react";
 import {
   stegoService,
   type EmbedResponse,
@@ -197,11 +203,23 @@ export function StegoPage() {
             <div className="stego-form__grid">
               <label className="auth-label">
                 <span>Carrier file</span>
-                <input
-                  className="auth-input"
-                  type="file"
-                  onChange={(e) => setEmbedFile(e.target.files?.[0] ?? null)}
-                />
+
+                <div className="upload-box">
+                  <input
+                    type="file"
+                    onChange={(e) => setEmbedFile(e.target.files?.[0] ?? null)}
+                    className="upload-box__input"
+                  />
+
+                  <div className="upload-box__content">
+                    <Upload size={20} />
+                    <p>
+                      {embedFile
+                        ? embedFile.name
+                        : "Click to choose a file or drag it here"}
+                    </p>
+                  </div>
+                </div>
               </label>
 
               <label className="auth-label">
@@ -274,11 +292,23 @@ export function StegoPage() {
             <div className="stego-form__grid">
               <label className="auth-label">
                 <span>Stego file</span>
-                <input
-                  className="auth-input"
-                  type="file"
-                  onChange={(e) => setExtractFile(e.target.files?.[0] ?? null)}
-                />
+
+                <div className="upload-box">
+                  <input
+                    type="file"
+                    onChange={(e) => setExtractFile(e.target.files?.[0] ?? null)}
+                    className="upload-box__input"
+                  />
+
+                  <div className="upload-box__content">
+                    <Upload size={20} />
+                    <p>
+                      {extractFile
+                        ? extractFile.name
+                        : "Click to choose a file or drag it here"}
+                    </p>
+                  </div>
+                </div>
               </label>
 
               <div className="stego-extract-preview">

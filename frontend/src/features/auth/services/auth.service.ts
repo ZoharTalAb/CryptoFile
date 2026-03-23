@@ -8,21 +8,23 @@ import type {
   UserResponse,
 } from "../types/auth.types";
 
+type PasswordResetRequestResponse = {
+  message: string;
+  reset_token: string | null;
+};
+
 function extractErrorMessage(error: unknown): string {
   if (axios.isAxiosError(error)) {
-    // ❌ אין חיבור לבקאנד
     if (!error.response) {
       return "Cannot connect to server";
     }
 
     const data = error.response.data;
 
-    // ✅ FastAPI רגיל: { detail: "..." }
     if (typeof data?.detail === "string") {
       return data.detail;
     }
 
-    // ✅ FastAPI validation: { detail: [{ msg: "..." }] }
     if (Array.isArray(data?.detail) && data.detail.length > 0) {
       const first = data.detail[0];
       if (typeof first?.msg === "string") {
@@ -30,12 +32,14 @@ function extractErrorMessage(error: unknown): string {
       }
     }
 
-    // ✅ מקרה כללי
     if (typeof data?.message === "string") {
       return data.message;
     }
 
-    // ✅ fallback לפי סטטוס
+    if (typeof data?.detail?.message === "string") {
+      return data.detail.message;
+    }
+
     switch (error.response.status) {
       case 401:
         return "Invalid email or password";
@@ -43,12 +47,21 @@ function extractErrorMessage(error: unknown): string {
         return "Invalid request";
       case 403:
         return "Access denied";
+      case 423:
+        return "Login temporarily unavailable";
       case 500:
         return "Server error";
     }
   }
 
   return "Something went wrong. Please try again.";
+}
+
+function getStoredToken() {
+  return (
+    localStorage.getItem("cryptofile_token") ??
+    sessionStorage.getItem("cryptofile_token")
+  );
 }
 
 export const authService = {
@@ -79,15 +92,53 @@ export const authService = {
     }
   },
 
-  saveToken(token: string) {
-    localStorage.setItem("cryptofile_token", token);
+  async requestPasswordReset(email: string): Promise<PasswordResetRequestResponse> {
+    try {
+      const response = await api.post<PasswordResetRequestResponse>(
+        "/auth/password-reset/request",
+        { email }
+      );
+      return response.data;
+    } catch (error) {
+      throw new Error(extractErrorMessage(error));
+    }
+  },
+
+  async confirmPasswordReset(
+    token: string,
+    newPassword: string
+  ): Promise<MessageResponse> {
+    try {
+      const response = await api.post<MessageResponse>(
+        "/auth/password-reset/confirm",
+        {
+          token,
+          new_password: newPassword,
+        }
+      );
+      return response.data;
+    } catch (error) {
+      throw new Error(extractErrorMessage(error));
+    }
+  },
+
+  saveToken(token: string, persistent = true) {
+    if (persistent) {
+      localStorage.setItem("cryptofile_token", token);
+      sessionStorage.removeItem("cryptofile_token");
+      return;
+    }
+
+    sessionStorage.setItem("cryptofile_token", token);
+    localStorage.removeItem("cryptofile_token");
   },
 
   getToken() {
-    return localStorage.getItem("cryptofile_token");
+    return getStoredToken();
   },
 
   clearToken() {
     localStorage.removeItem("cryptofile_token");
+    sessionStorage.removeItem("cryptofile_token");
   },
 };

@@ -1,15 +1,15 @@
 import { Outlet } from "react-router-dom";
-import { Navbar } from "./Navbar";
 import { Sidebar } from "./Sidebar";
+import { Topbar } from "./Topbar";
 
 export function AppShell() {
   return (
-    <div className="app-shell">
+    <div className="app-shell-v2">
       <Sidebar />
 
-      <div className="app-shell__content">
-        <Navbar />
-        <main className="app-shell__main">
+      <div className="app-shell-v2__main">
+        <Topbar />
+        <main className="app-shell-v2__content">
           <Outlet />
         </main>
       </div>

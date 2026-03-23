@@ -1,38 +1,45 @@
 import { NavLink } from "react-router-dom";
-
-const navItems = [
-  { to: "/dashboard", label: "Dashboard" },
-  { to: "/chat", label: "Secure Chat" },
-  { to: "/files", label: "My Files" },
-  { to: "/stego", label: "Stego Lab" },
-  { to: "/security", label: "Security" },
-];
+import {
+  LayoutDashboard,
+  MessageSquare,
+  Folder,
+  Shield,
+  Sparkles,
+} from "lucide-react";
 
 export function Sidebar() {
   return (
-    <aside className="sidebar">
-      <div className="sidebar__brand">
-        <div className="sidebar__logo">C</div>
-        <div>
-          <h1 className="sidebar__title">CryptoFile</h1>
-          <p className="sidebar__subtitle">Private by design</p>
-        </div>
+    <aside className="sidebar-v2">
+      <div className="sidebar-v2__logo">
+        <div className="sidebar-v2__logo-icon">🔐</div>
+        <span>CryptoFile</span>
       </div>
 
-      <nav className="sidebar__nav">
-        {navItems.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            className={({ isActive }) =>
-              isActive
-                ? "sidebar__link sidebar__link--active"
-                : "sidebar__link"
-            }
-          >
-            {item.label}
-          </NavLink>
-        ))}
+      <nav className="sidebar-v2__nav">
+        <NavLink to="/dashboard" className="sidebar-v2__link">
+          <LayoutDashboard size={18} />
+          Dashboard
+        </NavLink>
+
+        <NavLink to="/chat" className="sidebar-v2__link">
+          <MessageSquare size={18} />
+          Secure Chat
+        </NavLink>
+
+        <NavLink to="/files" className="sidebar-v2__link">
+          <Folder size={18} />
+          Vault Files
+        </NavLink>
+
+        <NavLink to="/stego" className="sidebar-v2__link">
+          <Sparkles size={18} />
+          Stego Lab
+        </NavLink>
+
+        <NavLink to="/security" className="sidebar-v2__link">
+          <Shield size={18} />
+          Security
+        </NavLink>
       </nav>
     </aside>
   );
