@@ -4,7 +4,6 @@ import {
   FileLock2,
   Lock,
   MessageSquareMore,
-  ShieldCheck,
   Wand2,
 } from "lucide-react";
 import { Link } from "react-router-dom";
