@@ -10,6 +10,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../features/auth/context/AuthContext";
 import { authService } from "../features/auth/services/auth.service";
+import { api } from "../lib/api";
 
 export function SecurityPage() {
   const { user, logout } = useAuth();
@@ -35,28 +36,23 @@ export function SecurityPage() {
         throw new Error("You are not authenticated");
       }
 
-      const res = await fetch("http://localhost:8000/auth/change-password", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
+      const response = await api.post(
+        "/auth/change-password",
+        {
           current_password: currentPassword,
           new_password: newPassword,
-        }),
-      });
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.detail || "Failed to change password");
-      }
-
-      setMessage("Password changed successfully");
+      setMessage(response.data?.message || "Password changed successfully");
       setCurrentPassword("");
       setNewPassword("");
-    } catch (err) {
+    } catch (err: unknown) {
       const msg =
         err instanceof Error ? err.message : "Something went wrong";
       setError(msg);

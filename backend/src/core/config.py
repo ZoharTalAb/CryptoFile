@@ -36,6 +36,13 @@ ARGON2_TIME_COST = int(os.getenv("ARGON2_TIME_COST", "3"))
 ARGON2_MEMORY_COST = int(os.getenv("ARGON2_MEMORY_COST", "65536"))
 ARGON2_PARALLELISM = int(os.getenv("ARGON2_PARALLELISM", "4"))
 
+# Frontend
+FRONTEND_BASE_URL = os.getenv("FRONTEND_BASE_URL", "http://localhost:5173")
+
+# Email (Resend API)
+RESEND_API_KEY = os.getenv("RESEND_API_KEY")
+RESEND_FROM_EMAIL = os.getenv("RESEND_FROM_EMAIL")
+
 
 def _require(name: str, value: str | None):
     if not value:
@@ -49,13 +56,3 @@ if ENVIRONMENT == "production":
 
 # In dev/test we still require JWT_SECRET for safety
 _require("JWT_SECRET", JWT_SECRET)
-
-
-# Email (SMTP)
-SMTP_HOST = os.getenv("SMTP_HOST")
-SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
-SMTP_USERNAME = os.getenv("SMTP_USERNAME")
-SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
-SMTP_FROM_EMAIL = os.getenv("SMTP_FROM_EMAIL")
-
-FRONTEND_BASE_URL = os.getenv("FRONTEND_BASE_URL", "http://localhost:5173")
