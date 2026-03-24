@@ -316,9 +316,12 @@ class UserService:
             raise RuntimeError("Password reset repository is not configured")
 
         normalized_email = self._normalize_email(email)
+        print(f"[RESET] request start for email={normalized_email}")
+
         user = self._user_repository.get_by_email(normalized_email)
 
         if not user:
+            print(f"[RESET] user not found for email={normalized_email}")
             self._audit(
                 user_id=None,
                 email=normalized_email,
@@ -336,8 +339,13 @@ class UserService:
         recent_count = self._password_reset_repository.count_recent_by_user_id(
             user.id, since
         )
+        print(
+            f"[RESET] user_id={user.id} recent_count={recent_count} "
+            f"max={PASSWORD_RESET_MAX_REQUESTS} window={PASSWORD_RESET_WINDOW_MINUTES}"
+        )
 
         if recent_count >= PASSWORD_RESET_MAX_REQUESTS:
+            print(f"[RESET] rate limited for user_id={user.id}")
             self._audit(
                 user_id=user.id,
                 email=user.email,
@@ -351,6 +359,9 @@ class UserService:
 
         active_token = self._password_reset_repository.get_active_by_user_id(user.id)
         if active_token:
+            print(
+                f"[RESET] revoking previous active token id={active_token.id} for user_id={user.id}"
+            )
             self._password_reset_repository.mark_used(
                 token_id=active_token.id,
                 used_at=datetime.now(timezone.utc),
@@ -380,7 +391,9 @@ class UserService:
             )
         )
 
+        print(f"[RESET] token created for user_id={user.id}, sending email...")
         self._email_service.send_password_reset_email(user.email, raw_token)
+        print(f"[RESET] email send finished for user_id={user.id}")
 
         self._audit(
             user_id=user.id,
