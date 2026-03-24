@@ -330,19 +330,6 @@ class UserService:
             )
             return
 
-        active_token = self._password_reset_repository.get_active_by_user_id(user.id)
-        if active_token:
-            self._audit(
-                user_id=user.id,
-                email=user.email,
-                event_type="password_reset_requested",
-                success=False,
-                reason_code="active_token_exists",
-                ip_address=ip_address,
-                user_agent=user_agent,
-            )
-            return
-
         since = datetime.now(timezone.utc) - timedelta(
             minutes=PASSWORD_RESET_WINDOW_MINUTES
         )
@@ -361,6 +348,22 @@ class UserService:
                 user_agent=user_agent,
             )
             return
+
+        active_token = self._password_reset_repository.get_active_by_user_id(user.id)
+        if active_token:
+            self._password_reset_repository.mark_used(
+                token_id=active_token.id,
+                used_at=datetime.now(timezone.utc),
+            )
+            self._audit(
+                user_id=user.id,
+                email=user.email,
+                event_type="password_reset_requested",
+                success=True,
+                reason_code="previous_token_revoked",
+                ip_address=ip_address,
+                user_agent=user_agent,
+            )
 
         now = datetime.now(timezone.utc)
         raw_token = self._password_reset_service.generate_raw_token()
