@@ -4,14 +4,12 @@ from application.auth.login_protection_service import LoginProtectionService
 from application.auth.password_hasher import PasswordHasherService
 from application.auth.password_policy_service import PasswordPolicyService
 from application.auth.password_reset_service import PasswordResetService
-from backend.src.application.email.email_service import EmailService
+from application.email.email_service import EmailService
 from core.config import (
-    ENVIRONMENT,
     PASSWORD_EXPIRY_DAYS,
     PASSWORD_HISTORY_LIMIT,
     PASSWORD_RESET_MAX_REQUESTS,
     PASSWORD_RESET_WINDOW_MINUTES,
-    RESET_TOKEN_DEV_RETURN,
     RESET_TOKEN_EXP_MINUTES,
 )
 from domain.entities.auth_audit_log import AuthAuditLog
@@ -78,6 +76,7 @@ class UserService:
         self._password_policy = PasswordPolicyService()
         self._login_protection = LoginProtectionService()
         self._password_reset_service = PasswordResetService()
+        self._email_service = EmailService()
 
     def register(
         self,
@@ -307,8 +306,6 @@ class UserService:
             user_agent=user_agent,
         )
 
-    from application.email.email_service import EmailService
-
     def request_password_reset(
         self,
         email: str,
@@ -335,6 +332,15 @@ class UserService:
 
         active_token = self._password_reset_repository.get_active_by_user_id(user.id)
         if active_token:
+            self._audit(
+                user_id=user.id,
+                email=user.email,
+                event_type="password_reset_requested",
+                success=False,
+                reason_code="active_token_exists",
+                ip_address=ip_address,
+                user_agent=user_agent,
+            )
             return
 
         since = datetime.now(timezone.utc) - timedelta(
@@ -345,10 +351,18 @@ class UserService:
         )
 
         if recent_count >= PASSWORD_RESET_MAX_REQUESTS:
+            self._audit(
+                user_id=user.id,
+                email=user.email,
+                event_type="password_reset_requested",
+                success=False,
+                reason_code="rate_limited",
+                ip_address=ip_address,
+                user_agent=user_agent,
+            )
             return
 
         now = datetime.now(timezone.utc)
-
         raw_token = self._password_reset_service.generate_raw_token()
         token_hash = self._password_reset_service.hash_token(raw_token)
 
@@ -363,9 +377,7 @@ class UserService:
             )
         )
 
-        # 🔥 NEW: send email instead of returning token
-        email_service = EmailService()
-        email_service.send_password_reset_email(user.email, raw_token)
+        self._email_service.send_password_reset_email(user.email, raw_token)
 
         self._audit(
             user_id=user.id,

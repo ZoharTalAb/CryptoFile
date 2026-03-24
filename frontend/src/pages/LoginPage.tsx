@@ -2,12 +2,11 @@ import { motion } from "framer-motion";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   ArrowRight,
-  Copy,
   Lock,
   MessageSquareMore,
   ShieldCheck,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { authService } from "../features/auth/services/auth.service";
 import { useAuth } from "../features/auth/context/AuthContext";
 
@@ -21,7 +20,7 @@ const appear = (delay = 0) => ({
   },
 });
 
-type LoginMode = "login" | "request-reset" | "confirm-reset";
+type LoginMode = "login" | "request-reset";
 
 type LocationState = {
   registered?: boolean;
@@ -41,16 +40,9 @@ export function LoginPage() {
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(true);
 
-  const [resetToken, setResetToken] = useState("");
-  const [resetPassword, setResetPassword] = useState("");
-
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-
-  const resetTokenPreview = useMemo(() => {
-    return resetToken.trim();
-  }, [resetToken]);
 
   useEffect(() => {
     if (!loading && user) {
@@ -99,57 +91,15 @@ export function LoginPage() {
     try {
       const response = await authService.requestPasswordReset(email.trim());
 
-      setResetToken(response.reset_token ?? "");
       setSuccess(
-        response.reset_token
-          ? "Reset token issued. Paste it below and choose a new password."
-          : "If the account exists, a reset token was issued."
+        response.message || "If the account exists, a reset email has been sent."
       );
-      setMode("confirm-reset");
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Something went wrong. Please try again.";
       setError(message);
     } finally {
       setSubmitting(false);
-    }
-  }
-
-  async function handleConfirmReset(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    setError("");
-    setSuccess("");
-    setSubmitting(true);
-
-    try {
-      const response = await authService.confirmPasswordReset(
-        resetToken.trim(),
-        resetPassword
-      );
-
-      setSuccess(response.message || "Password reset successfully.");
-      setPassword("");
-      setResetPassword("");
-      setResetToken("");
-      setMode("login");
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Something went wrong. Please try again.";
-      setError(message);
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  async function handleCopyToken() {
-    if (!resetTokenPreview) return;
-
-    try {
-      await navigator.clipboard.writeText(resetTokenPreview);
-      setSuccess("Reset token copied to clipboard.");
-    } catch {
-      setError("Could not copy reset token.");
     }
   }
 
@@ -193,27 +143,19 @@ export function LoginPage() {
 
           <div className="auth-copy">
             <motion.p className="section-eyebrow" {...appear(0.05)}>
-              {mode === "login"
-                ? "Welcome back"
-                : mode === "request-reset"
-                ? "Forgot password"
-                : "Reset password"}
+              {mode === "login" ? "Welcome back" : "Forgot password"}
             </motion.p>
 
             <motion.h1 className="auth-title auth-title--large" {...appear(0.1)}>
               {mode === "login"
                 ? "Sign in to your secure workspace"
-                : mode === "request-reset"
-                ? "Request a password reset token"
-                : "Set a new password"}
+                : "Request a password reset email"}
             </motion.h1>
 
             <motion.p className="auth-subtitle auth-subtitle--wide" {...appear(0.15)}>
               {mode === "login"
                 ? "Access protected conversations, steganography tools, and secure file management from one modern workspace."
-                : mode === "request-reset"
-                ? "Enter your account email and CryptoFile will issue a reset token through the current backend flow."
-                : "Paste the reset token and choose a new password to recover access to your workspace."}
+                : "Enter your account email and CryptoFile will send a password reset link to your inbox."}
             </motion.p>
           </div>
 
@@ -323,7 +265,7 @@ export function LoginPage() {
                   className="button button--primary"
                   disabled={submitting}
                 >
-                  {submitting ? "Requesting..." : "Issue reset token"}
+                  {submitting ? "Sending..." : "Send reset email"}
                 </button>
 
                 <button
@@ -333,87 +275,6 @@ export function LoginPage() {
                   disabled={submitting}
                 >
                   Back to sign in
-                </button>
-              </div>
-            </motion.form>
-          ) : null}
-
-          {mode === "confirm-reset" ? (
-            <motion.form
-              className="auth-form auth-form--premium"
-              onSubmit={handleConfirmReset}
-              {...appear(0.2)}
-            >
-              <label className="auth-label">
-                <span>Reset token</span>
-                <input
-                  className="auth-input"
-                  type="text"
-                  placeholder="Paste reset token"
-                  value={resetToken}
-                  onChange={(e) => setResetToken(e.target.value)}
-                  disabled={submitting}
-                  required
-                />
-              </label>
-
-              {resetTokenPreview ? (
-                <div className="auth-reset-token-card">
-                  <div>
-                    <strong>Issued reset token</strong>
-                    <p>{resetTokenPreview}</p>
-                  </div>
-
-                  <button
-                    type="button"
-                    className="button button--secondary"
-                    onClick={handleCopyToken}
-                  >
-                    <Copy size={16} />
-                    Copy
-                  </button>
-                </div>
-              ) : null}
-
-              <label className="auth-label">
-                <span>New password</span>
-                <input
-                  className="auth-input"
-                  type="password"
-                  placeholder="Choose a strong new password"
-                  autoComplete="new-password"
-                  value={resetPassword}
-                  onChange={(e) => setResetPassword(e.target.value)}
-                  disabled={submitting}
-                  required
-                />
-              </label>
-
-              {error ? <div className="auth-alert auth-alert--error">{error}</div> : null}
-              {success ? (
-                <div className="auth-alert auth-alert--success">{success}</div>
-              ) : null}
-
-              <div className="auth-reset-actions">
-                <button
-                  type="submit"
-                  className="button button--primary"
-                  disabled={submitting}
-                >
-                  {submitting ? "Resetting..." : "Confirm password reset"}
-                </button>
-
-                <button
-                  type="button"
-                  className="button button--secondary"
-                  onClick={() => {
-                    setMode("request-reset");
-                    setError("");
-                    setSuccess("");
-                  }}
-                  disabled={submitting}
-                >
-                  Back
                 </button>
               </div>
             </motion.form>
@@ -431,20 +292,20 @@ export function LoginPage() {
               <span>
                 {mode === "login"
                   ? "Protected workspace access"
-                  : "Credential recovery flow"}
+                  : "Email recovery flow"}
               </span>
             </div>
 
             <h2 className="auth-visual__title">
               {mode === "login"
                 ? "Protected messaging and file workflows in one workspace"
-                : "Recover access without leaving the secure flow"}
+                : "Recover access through your email inbox"}
             </h2>
 
             <p className="auth-visual__text">
               {mode === "login"
                 ? "Sign in to continue secure conversations, steganography workflows, and protected file handling from one polished product surface."
-                : "CryptoFile already exposes password reset endpoints in the backend flow, so this screen now gives you a usable recovery path instead of a dead button."}
+                : "CryptoFile now sends password reset links by email, so only the mailbox owner can continue the recovery flow."}
             </p>
 
             <div className="auth-feature-list">
@@ -493,7 +354,7 @@ export function LoginPage() {
                   <div className="auth-mini-preview__message">
                     {mode === "login"
                       ? "Protected session ready"
-                      : "Password recovery flow active"}
+                      : "Recovery email flow active"}
                   </div>
                 </div>
               </div>
