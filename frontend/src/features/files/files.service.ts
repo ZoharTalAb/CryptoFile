@@ -70,13 +70,22 @@ export const filesService = {
     }
   },
 
-  async downloadFile(fileId: number, filename: string) {
+  async getFileBlob(fileId: number): Promise<Blob> {
     try {
       const response = await api.get(`/files/${fileId}/download`, {
         responseType: "blob",
       });
 
-      triggerBrowserDownload(response.data, filename);
+      return response.data;
+    } catch (error) {
+      throw new Error(extractErrorMessage(error));
+    }
+  },
+
+  async downloadFile(fileId: number, filename: string) {
+    try {
+      const blob = await this.getFileBlob(fileId);
+      triggerBrowserDownload(blob, filename);
     } catch (error) {
       throw new Error(extractErrorMessage(error));
     }

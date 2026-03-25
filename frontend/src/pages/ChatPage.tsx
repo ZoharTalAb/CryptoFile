@@ -25,6 +25,7 @@ import {
   type ChatRealtimeEvent,
 } from "../features/chat/chat.service";
 import { useToast } from "../components/common/ToastProvider";
+import { filesService, type FileItem } from "../features/files/files.service";
 
 type StegoType = "image" | "audio" | "text" | "video";
 type SocketStatus = "connecting" | "connected" | "offline";
@@ -36,6 +37,87 @@ type UploadingBubble = {
   caption: string;
   progress: number;
 };
+
+type FilePreviewState =
+  | {
+      kind: "image" | "audio" | "video";
+      url: string;
+      loading?: false;
+    }
+  | {
+      kind: "text";
+      text: string;
+      loading?: false;
+    }
+  | {
+      kind: "unknown";
+      loading?: false;
+      error?: string;
+    }
+  | {
+      kind: "loading";
+      loading: true;
+    };
+
+function buildFileIndex(items: FileItem[]) {
+  return items.reduce<Record<number, FileItem>>((acc, item) => {
+    acc[item.id] = item;
+    return acc;
+  }, {});
+}
+
+function inferMimeType(filename: string | undefined, stegoType?: string | null) {
+  const extension = filename?.split(".").pop()?.toLowerCase();
+
+  if (extension) {
+    if (["png", "jpg", "jpeg", "gif", "webp", "bmp"].includes(extension)) {
+      return `image/${extension === "jpg" ? "jpeg" : extension}`;
+    }
+
+    if (["mp3", "wav", "ogg", "m4a", "aac"].includes(extension)) {
+      if (extension === "mp3") return "audio/mpeg";
+      if (extension === "m4a") return "audio/mp4";
+      return `audio/${extension}`;
+    }
+
+    if (["mp4", "webm", "mov", "ogg"].includes(extension)) {
+      if (extension === "mov") return "video/quicktime";
+      return `video/${extension}`;
+    }
+
+    if (["txt", "md", "csv", "json", "log"].includes(extension)) {
+      return "text/plain";
+    }
+  }
+
+  switch (stegoType) {
+    case "image":
+      return "image/png";
+    case "audio":
+      return "audio/wav";
+    case "video":
+      return "video/mp4";
+    case "text":
+      return "text/plain";
+    default:
+      return "application/octet-stream";
+  }
+}
+
+function createPreviewFilename(fileId: number, stegoType?: string | null) {
+  const extension =
+    stegoType === "image"
+      ? "png"
+      : stegoType === "audio"
+      ? "wav"
+      : stegoType === "video"
+      ? "mp4"
+      : stegoType === "text"
+      ? "txt"
+      : "bin";
+
+  return `protected-file-${fileId}.${extension}`;
+}
 
 function parseServerDate(value?: string | null) {
   if (!value) return null;
@@ -148,6 +230,9 @@ export function ChatPage() {
 
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [fileIndex, setFileIndex] = useState<Record<number, FileItem>>({});
+  const [filePreviews, setFilePreviews] = useState<Record<number, FilePreviewState>>({});
+  const previewUrlsRef = useRef<Record<number, string>>({});
 
   const [activeConversationId, setActiveConversationId] = useState<number | null>(
     null
@@ -219,38 +304,23 @@ export function ChatPage() {
     }
 
     return conversations.filter((conversation) => {
-      const userEmail = conversation.other_user?.email?.toLowerCase() ?? "";
+      const participant = conversation.other_user?.email?.toLowerCase() ?? "";
       const preview = formatConversationPreview(conversation).toLowerCase();
 
-      return userEmail.includes(query) || preview.includes(query);
+      return participant.includes(query) || preview.includes(query);
     });
   }, [conversationSearch, conversations]);
 
-  useEffect(() => {
-    activeConversationIdRef.current = activeConversationId;
-  }, [activeConversationId]);
-
-  useEffect(() => {
-    currentUserIdRef.current = myUserId;
-  }, [myUserId]);
-
-  async function loadConversations(keepSelected = true) {
+  async function loadConversations(showRefresh = false) {
     try {
-      setLoadingConversations(true);
+      if (!showRefresh) {
+        setLoadingConversations(true);
+      }
+
       setPageError("");
 
       const data = await chatService.listConversations();
-      const sorted = sortConversations(data);
-
-      setConversations(sorted);
-
-      if (!keepSelected && sorted.length > 0) {
-        setActiveConversationId(sorted[0].id);
-      }
-
-      if (!activeConversationIdRef.current && sorted.length > 0) {
-        setActiveConversationId(sorted[0].id);
-      }
+      setConversations(sortConversations(data));
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Failed to load conversations";
@@ -268,16 +338,7 @@ export function ChatPage() {
 
       const data = await chatService.getMessages(conversationId);
       setMessages(data.messages ?? []);
-
-      await chatService.markConversationRead(conversationId);
-
-      setConversations((prev) =>
-        prev.map((conversation) =>
-          conversation.id === conversationId
-            ? { ...conversation, unread_count: 0 }
-            : conversation
-        )
-      );
+      setExtractedData({});
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Failed to load messages";
@@ -289,18 +350,26 @@ export function ChatPage() {
   }
 
   async function handleCreateConversation() {
-    if (!email.trim()) return;
+    const targetEmail = email.trim();
+
+    if (!targetEmail) {
+      const message = "Please enter an email address";
+      setPageError(message);
+      showToast(message, "error");
+      return;
+    }
 
     try {
       setCreatingConversation(true);
       setPageError("");
 
-      const created = await chatService.createConversation(email.trim());
+      const conversation = await chatService.createConversation(targetEmail);
 
-      await loadConversations(false);
-      setActiveConversationId(created.id);
       setEmail("");
-      showToast("Conversation created", "success");
+      setActiveConversationId(conversation.id);
+      await loadConversations();
+
+      showToast("Secure conversation ready", "success");
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Failed to create conversation";
@@ -313,21 +382,37 @@ export function ChatPage() {
 
   async function handleSelectConversation(conversationId: number) {
     setActiveConversationId(conversationId);
+
+    try {
+      await chatService.markConversationRead(conversationId);
+
+      setConversations((prev) =>
+        prev.map((conversation) =>
+          conversation.id === conversationId
+            ? { ...conversation, unread_count: 0 }
+            : conversation
+        )
+      );
+    } catch {
+      // keep UX smooth, message loading will still continue
+    }
   }
 
   async function handleSendMessage() {
-    if (!activeConversationId || !text.trim()) return;
+    if (!activeConversationId) return;
+
+    const content = text.trim();
+    if (!content) return;
 
     try {
       setSending(true);
       setPageError("");
 
-      await chatService.sendMessage(activeConversationId, text.trim());
+      await chatService.sendMessage(activeConversationId, content);
       setText("");
 
       await loadMessages(activeConversationId);
       await loadConversations();
-      showToast("Message sent", "success");
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Failed to send message";
@@ -395,6 +480,7 @@ export function ChatPage() {
 
       await loadMessages(activeConversationId);
       await loadConversations();
+      await loadAccessibleFiles();
       showToast("Secure file sent 🔐", "success");
     } catch (error) {
       const message =
@@ -443,6 +529,178 @@ export function ChatPage() {
     }
   }
 
+  async function loadAccessibleFiles() {
+    try {
+      const data = await filesService.listFiles();
+      const allFiles = [...(data.owned_files ?? []), ...(data.shared_with_me ?? [])];
+      setFileIndex(buildFileIndex(allFiles));
+    } catch (error) {
+      console.error("Failed to load accessible files", error);
+    }
+  }
+
+  async function prepareFilePreview(message: ChatMessage) {
+    if (!message.file_id) return;
+
+    if (filePreviews[message.file_id]) return;
+
+    const fileMeta = fileIndex[message.file_id];
+    if (!fileMeta) return;
+
+    setFilePreviews((prev) => ({
+      ...prev,
+      [message.file_id as number]: { kind: "loading", loading: true },
+    }));
+
+    try {
+      const blob = await filesService.getFileBlob(message.file_id);
+      const mimeType = inferMimeType(fileMeta.filename, message.stego_type);
+
+      if (message.stego_type === "text") {
+        const text = await new Blob([blob], { type: mimeType }).text();
+        setFilePreviews((prev) => ({
+          ...prev,
+          [message.file_id as number]: {
+            kind: "text",
+            text: text.slice(0, 1200),
+          },
+        }));
+        return;
+      }
+
+      const previewBlob = new Blob([blob], { type: mimeType });
+      const objectUrl = URL.createObjectURL(previewBlob);
+      previewUrlsRef.current[message.file_id] = objectUrl;
+
+      if (
+        message.stego_type === "image" ||
+        message.stego_type === "audio" ||
+        message.stego_type === "video"
+      ) {
+        setFilePreviews((prev) => ({
+          ...prev,
+          [message.file_id as number]: {
+            kind: message.stego_type as "image" | "audio" | "video",
+            url: objectUrl,
+          },
+        }));
+        return;
+      }
+
+      setFilePreviews((prev) => ({
+        ...prev,
+        [message.file_id as number]: {
+          kind: "unknown",
+        },
+      }));
+    } catch (error) {
+      setFilePreviews((prev) => ({
+        ...prev,
+        [message.file_id as number]: {
+          kind: "unknown",
+          error: error instanceof Error ? error.message : "Preview unavailable",
+        },
+      }));
+    }
+  }
+
+  async function handleDownloadFile(message: ChatMessage) {
+    if (!message.file_id) return;
+
+    const filename =
+      fileIndex[message.file_id]?.filename ??
+      createPreviewFilename(message.file_id, message.stego_type);
+
+    try {
+      await filesService.downloadFile(message.file_id, filename);
+      showToast("File download started", "success");
+    } catch (error) {
+      const msg =
+        error instanceof Error ? error.message : "Failed to download file";
+      setPageError(msg);
+      showToast(msg, "error");
+    }
+  }
+
+  function renderFilePreview(message: ChatMessage) {
+    if (!message.file_id) return null;
+
+    const preview = filePreviews[message.file_id];
+
+    if (!preview || preview.kind === "loading") {
+      return (
+        <div className="chat-file-message__preview-shell">
+          Preparing preview...
+        </div>
+      );
+    }
+
+    if (preview.kind === "image") {
+      return (
+        <div className="chat-file-message__preview-shell">
+          <img
+            src={preview.url}
+            alt={fileIndex[message.file_id]?.filename ?? "Protected image"}
+            style={{
+              width: "100%",
+              maxWidth: "280px",
+              display: "block",
+              borderRadius: "16px",
+              objectFit: "cover",
+            }}
+          />
+        </div>
+      );
+    }
+
+    if (preview.kind === "audio") {
+      return (
+        <div className="chat-file-message__preview-shell">
+          <audio controls src={preview.url} style={{ width: "100%" }} />
+        </div>
+      );
+    }
+
+    if (preview.kind === "video") {
+      return (
+        <div className="chat-file-message__preview-shell">
+          <video
+            controls
+            src={preview.url}
+            style={{
+              width: "100%",
+              maxWidth: "320px",
+              display: "block",
+              borderRadius: "16px",
+            }}
+          />
+        </div>
+      );
+    }
+
+    if (preview.kind === "text") {
+      return (
+        <div
+          className="chat-file-message__preview-shell"
+          style={{
+            whiteSpace: "pre-wrap",
+            lineHeight: 1.7,
+            maxHeight: "220px",
+            overflow: "auto",
+          }}
+        >
+          {preview.text || "Empty text file"}
+        </div>
+      );
+    }
+
+    return (
+      <div className="chat-file-message__preview-shell">
+        Preview unavailable
+      </div>
+    );
+  }
+
   function appendUniqueMessage(message: ChatMessage) {
     setMessages((prev) => {
       if (prev.some((item) => item.id === message.id)) {
@@ -483,6 +741,10 @@ export function ChatPage() {
         return prev;
       });
 
+      if (message.message_type === "stego_file") {
+        void loadAccessibleFiles();
+      }
+
       if (conversation_id === activeConversationIdRef.current) {
         appendUniqueMessage(message);
 
@@ -497,7 +759,12 @@ export function ChatPage() {
           );
         }
       } else if (message.sender_id !== currentUserIdRef.current) {
-        showToast("New secure message received", "info");
+        showToast(
+          message.message_type === "stego_file"
+            ? "New protected file received"
+            : "New secure message received",
+          "info"
+        );
       }
 
       return;
@@ -522,6 +789,7 @@ export function ChatPage() {
 
   useEffect(() => {
     void loadConversations();
+    void loadAccessibleFiles();
   }, []);
 
   useEffect(() => {
@@ -535,6 +803,25 @@ export function ChatPage() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, uploadingBubble]);
+
+  useEffect(() => {
+    for (const message of messages) {
+      if (
+        message.message_type === "stego_file" &&
+        message.file_id &&
+        fileIndex[message.file_id]
+      ) {
+        void prepareFilePreview(message);
+      }
+    }
+  }, [messages, fileIndex]);
+
+  useEffect(() => {
+    return () => {
+      Object.values(previewUrlsRef.current).forEach((url) => URL.revokeObjectURL(url));
+      previewUrlsRef.current = {};
+    };
+  }, []);
 
   useEffect(() => {
     let isUnmounted = false;
@@ -601,13 +888,11 @@ export function ChatPage() {
         setSocketStatus("offline");
 
         if (!notifiedSocketOfflineRef.current) {
-          showToast("Realtime disconnected. Reconnecting...", "info");
+          showToast("Realtime connection lost. Reconnecting...", "info");
           notifiedSocketOfflineRef.current = true;
         }
 
-        reconnectTimeoutRef.current = window.setTimeout(() => {
-          connectSocket();
-        }, 2000);
+        reconnectTimeoutRef.current = window.setTimeout(connectSocket, 2000);
       };
     }
 
@@ -616,100 +901,95 @@ export function ChatPage() {
     return () => {
       isUnmounted = true;
       clearSocketArtifacts();
-
-      if (socketRef.current) {
-        socketRef.current.close();
-        socketRef.current = null;
-      }
+      socketRef.current?.close();
+      socketRef.current = null;
     };
   }, [showToast]);
 
+  useEffect(() => {
+    activeConversationIdRef.current = activeConversationId;
+  }, [activeConversationId]);
+
+  useEffect(() => {
+    currentUserIdRef.current = myUserId;
+  }, [myUserId]);
+
   return (
-    <div className="chat-workspace chat-workspace--two-columns">
-      <section className="chat-conversations chat-conversations--wide">
-        <div className="chat-conversations__header">
+    <div className="chat-page">
+      <section className="chat-sidebar">
+        <div className="chat-sidebar__header">
           <div>
             <p className="section-eyebrow">Secure Chat</p>
-            <h2 className="chat-conversations__title">Inbox</h2>
+            <h1 className="section-title">Protected Conversations</h1>
           </div>
 
-          <div className="chat-conversations__header-actions">
-            <div
-              className={`chat-live-badge chat-live-badge--${socketStatus}`}
-              title={`Realtime status: ${socketStatus}`}
-            >
-              {socketStatus === "connected" ? (
-                <Wifi size={14} />
-              ) : socketStatus === "connecting" ? (
-                <LoaderCircle size={14} className="spin" />
-              ) : (
-                <WifiOff size={14} />
-              )}
-              <span>{socketStatus}</span>
-            </div>
-
-            <button
-              className="button button--secondary"
-              type="button"
-              onClick={() => void loadConversations()}
-              disabled={loadingConversations}
-            >
-              <RefreshCw size={16} className={loadingConversations ? "spin" : ""} />
-              Refresh
-            </button>
-          </div>
+          <button
+            className="button button--secondary"
+            onClick={() => void loadConversations(true)}
+            disabled={loadingConversations}
+            type="button"
+          >
+            <RefreshCw size={16} />
+            Refresh
+          </button>
         </div>
 
-        <div className="chat-conversations__create">
-          <div className="chat-search">
-            <Search size={16} />
-            <input
-              className="chat-search__input"
-              placeholder="Search conversations..."
-              value={conversationSearch}
-              onChange={(e) => setConversationSearch(e.target.value)}
-            />
-          </div>
-
-          <div className="chat-new-thread">
-            <div className="chat-new-thread__top">
-              <Shield size={16} />
-              <span>Start new secure conversation</span>
-            </div>
-
-            <div className="chat-new-thread__form">
-              <input
-                className="auth-input"
-                placeholder="Enter recipient email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-
-              <button
-                className="button button--primary"
-                onClick={handleCreateConversation}
-                disabled={creatingConversation}
-                type="button"
-              >
-                {creatingConversation ? "Creating..." : "Start Secure Chat"}
-              </button>
-            </div>
-          </div>
+        <div className="chat-sidebar__connection">
+          {socketStatus === "connected" ? (
+            <>
+              <Wifi size={16} />
+              <span>Realtime connection active</span>
+            </>
+          ) : socketStatus === "connecting" ? (
+            <>
+              <LoaderCircle size={16} className="spin" />
+              <span>Connecting realtime...</span>
+            </>
+          ) : (
+            <>
+              <WifiOff size={16} />
+              <span>Realtime offline</span>
+            </>
+          )}
         </div>
 
-        {pageError ? (
-          <div className="auth-alert auth-alert--error">{pageError}</div>
-        ) : null}
+        <div className="chat-sidebar__create">
+          <input
+            className="auth-input"
+            type="email"
+            placeholder="Start chat with email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
 
-        <div className="chat-conversations__list">
+          <button
+            className="button button--primary"
+            onClick={() => void handleCreateConversation()}
+            disabled={creatingConversation}
+            type="button"
+          >
+            <Shield size={16} />
+            {creatingConversation ? "Creating..." : "New conversation"}
+          </button>
+        </div>
+
+        <div className="chat-sidebar__search">
+          <Search size={16} />
+          <input
+            type="text"
+            placeholder="Search conversations"
+            value={conversationSearch}
+            onChange={(e) => setConversationSearch(e.target.value)}
+          />
+        </div>
+
+        {pageError ? <div className="auth-alert auth-alert--error">{pageError}</div> : null}
+
+        <div className="chat-conversation-list">
           {loadingConversations ? (
             <div className="chat-empty-state">Loading conversations...</div>
-          ) : filteredConversations.length === 0 ? (
-            <div className="chat-empty-state">
-              {conversations.length === 0
-                ? "No conversations yet. Start one above."
-                : "No conversations match your search."}
-            </div>
+          ) : !filteredConversations.length ? (
+            <div className="chat-empty-state">No conversations yet</div>
           ) : (
             filteredConversations.map((conversation) => {
               const isActive = conversation.id === activeConversationId;
@@ -817,8 +1097,10 @@ export function ChatPage() {
                           </div>
 
                           <div className="chat-file-message__title">
-                            Protected file attached
+                            {fileIndex[message.file_id ?? -1]?.filename ?? "Protected file attached"}
                           </div>
+
+                          {renderFilePreview(message)}
 
                           {message.text_content ? (
                             <div className="chat-file-message__caption">
@@ -826,17 +1108,30 @@ export function ChatPage() {
                             </div>
                           ) : null}
 
-                          <button
-                            className="button button--secondary"
-                            style={{ marginTop: "10px" }}
-                            onClick={() => void handleExtract(message.id)}
-                            disabled={extractingMessageId === message.id}
-                            type="button"
+                          <div
+                            className="chat-file-message__actions"
+                            style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginTop: "10px" }}
                           >
-                            {extractingMessageId === message.id
-                              ? "Extracting..."
-                              : "Extract hidden message"}
-                          </button>
+                            <button
+                              className="button button--secondary"
+                              onClick={() => void handleDownloadFile(message)}
+                              disabled={!message.file_id}
+                              type="button"
+                            >
+                              Download file
+                            </button>
+
+                            <button
+                              className="button button--secondary"
+                              onClick={() => void handleExtract(message.id)}
+                              disabled={extractingMessageId === message.id}
+                              type="button"
+                            >
+                              {extractingMessageId === message.id
+                                ? "Extracting..."
+                                : "Extract hidden message"}
+                            </button>
+                          </div>
 
                           {extractedData[message.id] ? (
                             <div className="chat-file-message__extract-result">
@@ -903,7 +1198,9 @@ export function ChatPage() {
               ) : null}
 
               {!messages.length && !uploadingBubble ? (
-                <div className="chat-empty-state">No messages yet</div>
+                <div className="chat-empty-state">
+                  No messages yet. Send your first protected message.
+                </div>
               ) : null}
 
               <div ref={messagesEndRef} />
@@ -912,107 +1209,111 @@ export function ChatPage() {
         </div>
 
         {activeConversationId ? (
-          <div className="chat-thread__composer chat-thread__composer--stacked">
+          <div className="chat-thread__composer">
             {showFileComposer ? (
               <div className="chat-file-composer">
                 <div className="chat-file-composer__header">
-                  <strong>Send secure file</strong>
+                  <div>
+                    <strong>Attach secure file</strong>
+                    <p>Embed hidden data and send it as a protected message.</p>
+                  </div>
+
                   <button
-                    type="button"
                     className="chat-file-composer__close"
                     onClick={resetFileComposer}
+                    type="button"
                   >
                     <X size={16} />
                   </button>
                 </div>
 
                 <div className="chat-file-composer__grid">
-                  <input
-                    ref={fileInputRef}
-                    className="auth-input"
-                    type="file"
-                    onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)}
-                  />
+                  <label className="chat-file-composer__field">
+                    <span>Carrier file</span>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      onChange={(event) =>
+                        setSelectedFile(event.target.files?.[0] ?? null)
+                      }
+                    />
+                    <small>{selectedFileMeta ?? "Choose a supported file"}</small>
+                  </label>
 
-                  <select
-                    value={stegoType}
-                    onChange={(e) => setStegoType(e.target.value as StegoType)}
-                    className="chat-thread__select"
-                  >
-                    <option value="image">Image</option>
-                    <option value="audio">Audio</option>
-                    <option value="text">Text</option>
-                    <option value="video">Video</option>
-                  </select>
+                  <label className="chat-file-composer__field">
+                    <span>Stego type</span>
+                    <select
+                      value={stegoType}
+                      onChange={(event) =>
+                        setStegoType(event.target.value as StegoType)
+                      }
+                    >
+                      <option value="image">Image</option>
+                      <option value="audio">Audio</option>
+                      <option value="text">Text</option>
+                      <option value="video">Video</option>
+                    </select>
+                  </label>
 
-                  <input
-                    className="auth-input"
-                    placeholder="Secret data hidden inside the file"
-                    value={secretData}
-                    onChange={(e) => setSecretData(e.target.value)}
-                  />
+                  <label className="chat-file-composer__field chat-file-composer__field--full">
+                    <span>Secret data</span>
+                    <textarea
+                      rows={4}
+                      value={secretData}
+                      onChange={(event) => setSecretData(event.target.value)}
+                      placeholder="Enter the hidden message you want to embed..."
+                    />
+                  </label>
 
-                  <input
-                    className="auth-input"
-                    placeholder="Caption (optional)"
-                    value={caption}
-                    onChange={(e) => setCaption(e.target.value)}
-                  />
+                  <label className="chat-file-composer__field chat-file-composer__field--full">
+                    <span>Caption (optional)</span>
+                    <input
+                      type="text"
+                      value={caption}
+                      onChange={(event) => setCaption(event.target.value)}
+                      placeholder="Add context for the receiver"
+                    />
+                  </label>
                 </div>
 
-                {selectedFileMeta ? (
-                  <div className="chat-file-composer__preview">
-                    <span className="chat-file-composer__preview-icon">
-                      {getStegoIcon(stegoType)}
-                    </span>
-
-                    <div style={{ flex: 1 }}>
-                      <strong>Ready to send</strong>
-                      <div>{selectedFileMeta}</div>
-
-                      {sendingFile ? (
-                        <div className="upload-progress">
-                          <div
-                            className="upload-progress__bar"
-                            style={{ width: `${uploadProgress}%` }}
-                          />
-                        </div>
-                      ) : null}
-                    </div>
-
-                    {sendingFile ? <span>{uploadProgress}%</span> : null}
+                {sendingFile ? (
+                  <div className="upload-progress">
+                    <div
+                      className="upload-progress__bar"
+                      style={{ width: `${uploadProgress}%` }}
+                    />
                   </div>
                 ) : null}
 
                 <div className="chat-file-composer__actions">
                   <button
                     className="button button--secondary"
-                    type="button"
                     onClick={resetFileComposer}
+                    type="button"
                   >
                     Cancel
                   </button>
 
                   <button
                     className="button button--primary"
-                    type="button"
                     onClick={() => void handleSendFileMessage()}
                     disabled={sendingFile}
+                    type="button"
                   >
-                    {sendingFile ? "Sending file..." : "Send File Securely"}
+                    {sendingFile ? "Sending..." : "Send Secure File"}
                   </button>
                 </div>
               </div>
             ) : null}
 
-            <div className="chat-thread__composer-row">
+            <div className="chat-thread__input-row">
               <button
                 className="button button--secondary"
-                type="button"
                 onClick={() => setShowFileComposer((prev) => !prev)}
+                type="button"
               >
                 <Paperclip size={16} />
-                {showFileComposer ? "Hide File Upload" : "Attach Secure File"}
+                Attach Secure File
               </button>
 
               <input

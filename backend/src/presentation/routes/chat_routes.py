@@ -39,6 +39,9 @@ from infrastructure.db.repositories.conversation_repository_impl import (
 from infrastructure.db.repositories.chat_message_repository_impl import (
     ChatMessageRepositoryImpl,
 )
+from infrastructure.db.repositories.file_share_repository_impl import (
+    FileShareRepositoryImpl,
+)
 from infrastructure.storage.local_storage import LocalStorage
 from infrastructure.stego.stego_dispatcher import StegoDispatcher
 from infrastructure.realtime.chat_connection_manager import chat_connection_manager
@@ -251,10 +254,13 @@ async def send_stego_file_message(
         stego_service=StegoDispatcher(),
     )
 
+    file_share_repo = FileShareRepositoryImpl(db)
+
     use_case = SendStegoFileMessageUseCase(
         conversation_repo=conversation_repo,
         chat_message_repo=chat_message_repo,
         create_stego_file_use_case=create_stego_file_use_case,
+        file_share_repo=file_share_repo,
     )
 
     try:
