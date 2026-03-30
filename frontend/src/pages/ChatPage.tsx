@@ -700,7 +700,7 @@ export function ChatPage() {
         <div className="cf-preview-shell">
           <img
             src={preview.url}
-            alt={fileIndex[message.file_id]?.filename ?? "Protected image"}
+            alt="preview"
             className="cf-preview-image"
           />
         </div>
@@ -710,7 +710,10 @@ export function ChatPage() {
     if (preview.kind === "audio") {
       return (
         <div className="cf-preview-shell">
-          <audio controls src={preview.url} className="cf-preview-audio" />
+          <audio controls className="cf-preview-audio">
+            <source src={preview.url} type="audio/wav" />
+            Your browser does not support audio
+          </audio>
         </div>
       );
     }
@@ -723,24 +726,17 @@ export function ChatPage() {
             playsInline
             preload="metadata"
             className="cf-preview-video"
-            src={preview.url}
-          />
+          >
+            <source src={preview.url} type="video/mp4" />
+            Your browser does not support video
+          </video>
         </div>
       );
     }
 
     if (preview.kind === "text") {
       return (
-        <div
-          className="cf-preview-shell cf-preview-shell--text"
-          style={{
-            background: "rgba(15, 23, 42, 0.88)",
-            color: "#e2e8f0",
-            fontFamily: "JetBrains Mono, monospace",
-            fontSize: "13px",
-            lineHeight: 1.6,
-          }}
-        >
+        <div className="cf-preview-shell cf-preview-shell--text">
           {preview.text || "Empty text file"}
         </div>
       );
@@ -754,11 +750,7 @@ export function ChatPage() {
       );
     }
 
-    return (
-      <div className="cf-preview-shell cf-preview-shell--error">
-        Preview unavailable
-      </div>
-    );
+    return null;
   }
 
   function appendUniqueMessage(message: ChatMessage) {
