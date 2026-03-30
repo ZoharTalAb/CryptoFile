@@ -1,8 +1,78 @@
-import { useEffect, useMemo, useState } from "react";
-import { Download, Files, FolderLock, RefreshCw, Share2 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Download,
+  Files,
+  FolderLock,
+  RefreshCw,
+  Share2,
+  ImageIcon,
+  FileAudio2,
+  FileText,
+  Film,
+  File as FileIcon,
+} from "lucide-react";
 import { filesService, type FileItem } from "../features/files/files.service";
 
 type ActiveTab = "owned" | "shared";
+
+type FilePreviewState =
+  | { kind: "loading" }
+  | { kind: "image"; url: string }
+  | { kind: "audio"; url: string }
+  | { kind: "video"; url: string }
+  | { kind: "text"; text: string }
+  | { kind: "other" }
+  | { kind: "error"; message: string };
+
+function inferKind(filename: string) {
+  const ext = filename.split(".").pop()?.toLowerCase() ?? "";
+
+  if (["png", "jpg", "jpeg", "gif", "webp", "bmp"].includes(ext)) return "image";
+  if (["mp3", "wav", "ogg", "m4a", "aac"].includes(ext)) return "audio";
+  if (["mp4", "webm", "mov", "avi", "ogg"].includes(ext)) return "video";
+  if (["txt", "md", "csv", "json", "log"].includes(ext)) return "text";
+  return "other";
+}
+
+function inferMimeType(filename: string) {
+  const ext = filename.split(".").pop()?.toLowerCase() ?? "";
+
+  if (["png", "jpg", "jpeg", "gif", "webp", "bmp"].includes(ext)) {
+    return `image/${ext === "jpg" ? "jpeg" : ext}`;
+  }
+
+  if (["mp3", "wav", "ogg", "m4a", "aac"].includes(ext)) {
+    if (ext === "mp3") return "audio/mpeg";
+    if (ext === "m4a") return "audio/mp4";
+    return `audio/${ext}`;
+  }
+
+  if (["mp4", "webm", "mov", "avi", "ogg"].includes(ext)) {
+    if (ext === "mov") return "video/quicktime";
+    if (ext === "avi") return "video/x-msvideo";
+    return `video/${ext}`;
+  }
+
+  if (["txt", "md", "csv", "json", "log"].includes(ext)) {
+    return "text/plain";
+  }
+
+  return "application/octet-stream";
+}
+
+function formatDate(value: string) {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return value;
+  return parsed.toLocaleString();
+}
+
+function cleanFilename(filename: string) {
+  const underscoreIndex = filename.indexOf("_");
+  if (underscoreIndex > 20) {
+    return filename.slice(underscoreIndex + 1);
+  }
+  return filename;
+}
 
 export function FilesPage() {
   const [ownedFiles, setOwnedFiles] = useState<FileItem[]>([]);
@@ -19,6 +89,9 @@ export function FilesPage() {
   const [shareLoading, setShareLoading] = useState(false);
   const [shareError, setShareError] = useState("");
   const [shareSuccess, setShareSuccess] = useState("");
+
+  const [previews, setPreviews] = useState<Record<number, FilePreviewState>>({});
+  const previewUrlsRef = useRef<Record<number, string>>({});
 
   const visibleFiles = useMemo(() => {
     return activeTab === "owned" ? ownedFiles : sharedFiles;
@@ -53,6 +126,89 @@ export function FilesPage() {
     void loadFiles();
   }, []);
 
+  useEffect(() => {
+    const onFocus = () => {
+      void loadFiles(true);
+    };
+
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") {
+        void loadFiles(true);
+      }
+    };
+
+    const interval = window.setInterval(() => {
+      void loadFiles(true);
+    }, 15000);
+
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      Object.values(previewUrlsRef.current).forEach((url) => URL.revokeObjectURL(url));
+      previewUrlsRef.current = {};
+    };
+  }, []);
+
+  useEffect(() => {
+    visibleFiles.forEach((file) => {
+      if (previews[file.id]) return;
+      void preparePreview(file);
+    });
+  }, [visibleFiles]);
+
+  async function preparePreview(file: FileItem) {
+    setPreviews((prev) => ({ ...prev, [file.id]: { kind: "loading" } }));
+
+    try {
+      const blob = await filesService.getFileBlob(file.id);
+      const kind = inferKind(file.filename);
+
+      if (kind === "text") {
+        const text = await new Blob([blob], { type: inferMimeType(file.filename) }).text();
+        setPreviews((prev) => ({
+          ...prev,
+          [file.id]: { kind: "text", text: text.slice(0, 500) },
+        }));
+        return;
+      }
+
+      if (kind === "image" || kind === "audio" || kind === "video") {
+        const objectUrl = URL.createObjectURL(
+          new Blob([blob], { type: inferMimeType(file.filename) })
+        );
+        previewUrlsRef.current[file.id] = objectUrl;
+
+        setPreviews((prev) => ({
+          ...prev,
+          [file.id]: { kind, url: objectUrl } as FilePreviewState,
+        }));
+        return;
+      }
+
+      setPreviews((prev) => ({
+        ...prev,
+        [file.id]: { kind: "other" },
+      }));
+    } catch (error) {
+      setPreviews((prev) => ({
+        ...prev,
+        [file.id]: {
+          kind: "error",
+          message: error instanceof Error ? error.message : "Preview unavailable",
+        },
+      }));
+    }
+  }
+
   async function handleShareSubmit(fileId: number) {
     if (!targetEmail.trim()) {
       setShareError("Please enter an email address");
@@ -72,6 +228,7 @@ export function FilesPage() {
       setShareSuccess(`Shared successfully with ${result.shared_with_email}`);
       setTargetEmail("");
       setShareFileId(null);
+      await loadFiles(true);
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Failed to share file";
@@ -108,6 +265,85 @@ export function FilesPage() {
     setShareError("");
   }
 
+  function renderPreview(file: FileItem) {
+    const preview = previews[file.id];
+
+    if (!preview || preview.kind === "loading") {
+      return <div className="vault-preview vault-preview--loading">Preparing preview…</div>;
+    }
+
+    if (preview.kind === "image") {
+      return (
+        <div className="vault-preview">
+          <img
+            src={preview.url}
+            alt={file.filename}
+            className="vault-preview__image"
+          />
+        </div>
+      );
+    }
+
+    if (preview.kind === "audio") {
+      return (
+        <div className="vault-preview">
+          <div className="vault-preview__media-top">
+            <FileAudio2 size={16} />
+            <span>Audio preview</span>
+          </div>
+          <audio controls src={preview.url} className="vault-preview__audio" />
+        </div>
+      );
+    }
+
+    if (preview.kind === "video") {
+      return (
+        <div className="vault-preview">
+          <video controls src={preview.url} className="vault-preview__video" />
+        </div>
+      );
+    }
+
+    if (preview.kind === "text") {
+      return (
+        <div className="vault-preview vault-preview--text">
+          <div className="vault-preview__media-top">
+            <FileText size={16} />
+            <span>Text snippet</span>
+          </div>
+          <pre className="vault-preview__text">{preview.text || "Empty text file"}</pre>
+        </div>
+      );
+    }
+
+    if (preview.kind === "error") {
+      return (
+        <div className="vault-preview vault-preview--error">
+          Preview unavailable: {preview.message}
+        </div>
+      );
+    }
+
+    return (
+      <div className="vault-preview vault-preview--other">
+        <div className="vault-preview__placeholder">
+          <FileIcon size={20} />
+          <span>No inline preview</span>
+        </div>
+      </div>
+    );
+  }
+
+  function renderTypeIcon(file: FileItem) {
+    const kind = inferKind(file.filename);
+
+    if (kind === "image") return <ImageIcon size={16} />;
+    if (kind === "audio") return <FileAudio2 size={16} />;
+    if (kind === "video") return <Film size={16} />;
+    if (kind === "text") return <FileText size={16} />;
+    return <FileIcon size={16} />;
+  }
+
   return (
     <div className="files-page">
       <div className="files-page__header">
@@ -115,8 +351,8 @@ export function FilesPage() {
           <p className="section-eyebrow">My Files</p>
           <h1 className="section-title">File Vault</h1>
           <p className="section-text">
-            Browse your protected files, access shared assets, and grant access
-            to other users.
+            Browse your protected files, preview them inline, access shared assets,
+            and grant access to other users.
           </p>
         </div>
 
@@ -191,25 +427,31 @@ export function FilesPage() {
             </p>
           </div>
         ) : (
-          <div className="files-list">
+          <div className="vault-grid">
             {visibleFiles.map((file) => (
-              <article key={file.id} className="file-card">
-                <div className="file-card__main">
-                  <div className="file-card__meta">
+              <article key={file.id} className="vault-card">
+                <div className="vault-card__top">
+                  <div className="vault-card__badge-group">
                     <span className="file-card__badge">
                       {file.is_owner ? "Owner" : "Shared"}
                     </span>
-                    <span className="file-card__date">
-                      {new Date(file.created_at).toLocaleString()}
+                    <span className="vault-card__type-badge">
+                      {renderTypeIcon(file)}
+                      {inferKind(file.filename)}
                     </span>
                   </div>
 
-                  <h3 className="file-card__title">{file.filename}</h3>
+                  <span className="file-card__date">{formatDate(file.created_at)}</span>
+                </div>
 
+                <div className="vault-card__title-group">
+                  <h3 className="file-card__title">{cleanFilename(file.filename)}</h3>
                   <p className="file-card__subtitle">
                     File ID: {file.id} · Protected asset ready for download
                   </p>
                 </div>
+
+                {renderPreview(file)}
 
                 <div className="file-card__actions">
                   <button

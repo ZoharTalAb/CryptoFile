@@ -1,7 +1,7 @@
 import uuid
 
 from domain.enums.stego_type import StegoType
-from domain.exceptions import PayloadTooLargeError
+from domain.exceptions import UnsupportedAudioFormatError
 from infrastructure.stego.stego_dispatcher import StegoDispatcher
 from infrastructure.storage.local_storage import LocalStorage
 from infrastructure.db.repositories.file_repository_impl import FileRepositoryImpl
@@ -26,7 +26,14 @@ class CreateStegoFileUseCase:
         secret_data: str,
         file_bytes: bytes,
     ):
-        payload = secret_data.encode("utf-8")
+        normalized_name = (original_filename or "").lower()
+
+        if stego_type == StegoType.AUDIO and not normalized_name.endswith(".wav"):
+            raise UnsupportedAudioFormatError(
+                "Audio stego currently supports WAV files only"
+            )
+
+        payload = b"TXT" + secret_data.encode("utf-8")
 
         result_bytes = self._stego_service.dispatch_embed(
             stego_type,

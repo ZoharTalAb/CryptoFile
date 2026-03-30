@@ -8,7 +8,11 @@ from infrastructure.stego.stego_dispatcher import StegoDispatcher
 from infrastructure.storage.local_storage import LocalStorage
 from infrastructure.db.repositories.file_repository_impl import FileRepositoryImpl
 
-from domain.exceptions import CorruptedPayloadError, PayloadTooLargeError
+from domain.exceptions import (
+    CorruptedPayloadError,
+    PayloadTooLargeError,
+    UnsupportedAudioFormatError,
+)
 from domain.enums.stego_type import StegoType
 
 from presentation.dependencies import get_current_user, get_db
@@ -32,8 +36,13 @@ async def embed_message(
     db=Depends(get_db),
 ):
     try:
+        if stego_type == StegoType.AUDIO and not file.filename.lower().endswith(".wav"):
+            raise UnsupportedAudioFormatError(
+                "Audio stego currently supports WAV files only"
+            )
+
         file_bytes = await file.read()
-        payload = secret_data.encode("utf-8")
+        payload = b"TXT" + secret_data.encode("utf-8")
         result_bytes = stego_service.dispatch_embed(stego_type, file_bytes, payload)
 
         unique_filename = f"{uuid.uuid4()}_{file.filename}"
@@ -62,31 +71,38 @@ async def embed_message(
             created_at=db_file.created_at,
         )
 
-    except PayloadTooLargeError:
-        raise HTTPException(
-            status_code=400, detail="The message is too large for this file."
-        )
+    except PayloadTooLargeError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except UnsupportedAudioFormatError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
 
 
 @router.post("/extract", response_model=ExtractResponse)
 async def extract_message(
-    stego_type: str = Form(..., description="image, audio, text, or video"),
+    stego_type: StegoType = Form(..., description="image, audio, text, or video"),
     file: UploadFile = File(...),
 ):
     try:
         file_bytes = await file.read()
         extracted_bytes = stego_service.dispatch_extract(stego_type, file_bytes)
 
+        if len(extracted_bytes) >= 3 and extracted_bytes[:3] == b"TXT":
+            message = extracted_bytes[3:].decode("utf-8", errors="replace")
+        else:
+            message = extracted_bytes.decode("utf-8", errors="replace")
+
         return ExtractResponse(
-            stego_type=stego_type,
-            extracted_message=extracted_bytes.decode("utf-8"),
+            stego_type=stego_type.value,
+            extracted_message=message,
         )
     except CorruptedPayloadError:
         raise HTTPException(
             status_code=400, detail="Could not find a valid message in this file."
         )
+    except UnsupportedAudioFormatError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Extraction failed: {str(e)}")
 
@@ -97,11 +113,6 @@ async def extract_message(
     summary="List raw files in local stego storage (legacy/debug endpoint)",
 )
 async def list_stego_storage_files():
-    """
-    Legacy/debug endpoint.
-    Lists raw files from the local storage directory, not the DB-backed user file model.
-    For frontend/product flows, prefer GET /files/.
-    """
     try:
         upload_dir = storage.base_path
         if not os.path.exists(upload_dir):
@@ -118,11 +129,6 @@ async def list_stego_storage_files():
     summary="Download raw file from local stego storage (legacy/debug endpoint)",
 )
 async def download_stego_storage_file(filename: str):
-    """
-    Legacy/debug endpoint.
-    Downloads a raw file directly from local storage by filename.
-    For authenticated product flows, prefer GET /files/{file_id}/download.
-    """
     file_path = os.path.join(storage.base_path, filename)
 
     if not os.path.exists(file_path):

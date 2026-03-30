@@ -2,6 +2,7 @@ from domain.exceptions import (
     MessageNotFoundError,
     ConversationAccessDeniedError,
     FileNotFoundError,
+    CorruptedPayloadError,
 )
 from infrastructure.db.repositories.chat_message_repository_impl import (
     ChatMessageRepositoryImpl,
@@ -54,9 +55,20 @@ class ExtractChatMessageUseCase:
             file_bytes,
         )
 
+        if len(extracted_bytes) < 3:
+            raise CorruptedPayloadError("Extracted payload is invalid")
+
+        prefix = extracted_bytes[:3]
+        payload = extracted_bytes[3:]
+
+        if prefix == b"TXT":
+            extracted_message = payload.decode("utf-8", errors="replace")
+        else:
+            extracted_message = extracted_bytes.decode("utf-8", errors="replace")
+
         return {
             "message_id": message.id,
             "file_id": message.file_id,
             "stego_type": message.stego_type,
-            "extracted_message": extracted_bytes.decode("utf-8"),
+            "extracted_message": extracted_message,
         }

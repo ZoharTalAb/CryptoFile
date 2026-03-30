@@ -16,6 +16,9 @@ import {
   Sparkles,
   Check,
   CheckCheck,
+  Download,
+  WandSparkles,
+  AlertCircle,
 } from "lucide-react";
 import { useAuth } from "../features/auth/context/AuthContext";
 import {
@@ -80,8 +83,9 @@ function inferMimeType(filename: string | undefined, stegoType?: string | null) 
       return `audio/${extension}`;
     }
 
-    if (["mp4", "webm", "mov", "ogg"].includes(extension)) {
+    if (["mp4", "webm", "mov", "avi", "ogg"].includes(extension)) {
       if (extension === "mov") return "video/quicktime";
+      if (extension === "avi") return "video/x-msvideo";
       return `video/${extension}`;
     }
 
@@ -220,6 +224,52 @@ function renderMessageStatus(status?: string, isMe?: boolean) {
   return <Check size={14} className="chat-status-icon" />;
 }
 
+function inferStegoTypeFromFile(file: File | null): StegoType | null {
+  if (!file) return null;
+  const ext = file.name.split(".").pop()?.toLowerCase();
+
+  if (!ext) return null;
+  if (["png", "jpg", "jpeg", "gif", "webp", "bmp"].includes(ext)) return "image";
+  if (["wav", "mp3", "ogg", "m4a", "aac"].includes(ext)) return "audio";
+  if (["txt", "md", "csv", "json", "log"].includes(ext)) return "text";
+  if (["mp4", "mov", "webm", "avi"].includes(ext)) return "video";
+
+  return null;
+}
+
+function validateCarrierFile(file: File | null, stegoType: StegoType) {
+  if (!file) return "Please choose a file first";
+
+  const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+
+  if (stegoType === "audio" && ext !== "wav") {
+    return "Audio stego currently supports WAV files only";
+  }
+
+  if (
+    stegoType === "image" &&
+    !["png", "jpg", "jpeg", "gif", "webp", "bmp"].includes(ext)
+  ) {
+    return "Image stego supports image carrier files only";
+  }
+
+  if (
+    stegoType === "text" &&
+    !["txt", "md", "csv", "json", "log"].includes(ext)
+  ) {
+    return "Text stego supports text carrier files only";
+  }
+
+  if (
+    stegoType === "video" &&
+    !["mp4", "mov", "webm", "avi"].includes(ext)
+  ) {
+    return "Video stego supports video carrier files only";
+  }
+
+  return null;
+}
+
 export function ChatPage() {
   const { user } = useAuth();
   const { showToast } = useToast();
@@ -278,7 +328,13 @@ export function ChatPage() {
     () => getSelectedFileMeta(selectedFile),
     [selectedFile]
   );
+
   const myUserId = user?.id;
+
+  const fileValidationError = useMemo(
+    () => validateCarrierFile(selectedFile, stegoType),
+    [selectedFile, stegoType]
+  );
 
   function formatConversationPreview(conversation: ConversationItem) {
     if (!conversation.last_message) {
@@ -394,7 +450,7 @@ export function ChatPage() {
         )
       );
     } catch {
-      // keep UX smooth, message loading will still continue
+      // keep smooth UX
     }
   }
 
@@ -425,14 +481,22 @@ export function ChatPage() {
 
   async function handleSendFileMessage() {
     if (!activeConversationId) return;
-    if (!selectedFile) {
-      const message = "Please choose a file first";
+
+    if (fileValidationError) {
+      setPageError(fileValidationError);
+      showToast(fileValidationError, "error");
+      return;
+    }
+
+    if (!secretData.trim()) {
+      const message = "Please enter secret data for the secure file";
       setPageError(message);
       showToast(message, "error");
       return;
     }
-    if (!secretData.trim()) {
-      const message = "Please enter secret data for the secure file";
+
+    if (!selectedFile) {
+      const message = "Please choose a file first";
       setPageError(message);
       showToast(message, "error");
       return;
@@ -481,7 +545,7 @@ export function ChatPage() {
       await loadMessages(activeConversationId);
       await loadConversations();
       await loadAccessibleFiles();
-      showToast("Secure file sent 🔐", "success");
+      showToast("Secure file sent", "success");
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Failed to send secure file";
@@ -505,7 +569,7 @@ export function ChatPage() {
         [messageId]: result.extracted_message,
       }));
 
-      showToast("Hidden message extracted ✨", "success");
+      showToast("Hidden message extracted", "success");
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Failed to extract message";
@@ -541,7 +605,6 @@ export function ChatPage() {
 
   async function prepareFilePreview(message: ChatMessage) {
     if (!message.file_id) return;
-
     if (filePreviews[message.file_id]) return;
 
     const fileMeta = fileIndex[message.file_id];
@@ -629,7 +692,7 @@ export function ChatPage() {
 
     if (!preview || preview.kind === "loading") {
       return (
-        <div className="chat-file-message__preview-shell">
+        <div className="cf-preview-shell cf-preview-shell--loading">
           Preparing preview...
         </div>
       );
@@ -637,17 +700,11 @@ export function ChatPage() {
 
     if (preview.kind === "image") {
       return (
-        <div className="chat-file-message__preview-shell">
+        <div className="cf-preview-shell">
           <img
             src={preview.url}
             alt={fileIndex[message.file_id]?.filename ?? "Protected image"}
-            style={{
-              width: "100%",
-              maxWidth: "280px",
-              display: "block",
-              borderRadius: "16px",
-              objectFit: "cover",
-            }}
+            className="cf-preview-image"
           />
         </div>
       );
@@ -655,47 +712,38 @@ export function ChatPage() {
 
     if (preview.kind === "audio") {
       return (
-        <div className="chat-file-message__preview-shell">
-          <audio controls src={preview.url} style={{ width: "100%" }} />
+        <div className="cf-preview-shell">
+          <audio controls src={preview.url} className="cf-preview-audio" />
         </div>
       );
     }
 
     if (preview.kind === "video") {
       return (
-        <div className="chat-file-message__preview-shell">
-          <video
-            controls
-            src={preview.url}
-            style={{
-              width: "100%",
-              maxWidth: "320px",
-              display: "block",
-              borderRadius: "16px",
-            }}
-          />
+        <div className="cf-preview-shell">
+          <video controls src={preview.url} className="cf-preview-video" />
         </div>
       );
     }
 
     if (preview.kind === "text") {
       return (
-        <div
-          className="chat-file-message__preview-shell"
-          style={{
-            whiteSpace: "pre-wrap",
-            lineHeight: 1.7,
-            maxHeight: "220px",
-            overflow: "auto",
-          }}
-        >
+        <div className="cf-preview-shell cf-preview-shell--text">
           {preview.text || "Empty text file"}
         </div>
       );
     }
 
+    if (preview.kind === "unknown") {
+      return (
+        <div className="cf-preview-shell cf-preview-shell--error">
+          {preview.error ?? "Preview unavailable"}
+        </div>
+      );
+    }
+
     return (
-      <div className="chat-file-message__preview-shell">
+      <div className="cf-preview-shell cf-preview-shell--error">
         Preview unavailable
       </div>
     );
@@ -914,13 +962,35 @@ export function ChatPage() {
     currentUserIdRef.current = myUserId;
   }, [myUserId]);
 
+  useEffect(() => {
+    if (!selectedFile) return;
+
+    const inferred = inferStegoTypeFromFile(selectedFile);
+    if (!inferred) return;
+
+    if (inferred === "audio") {
+      setStegoType("audio");
+    } else if (inferred === "image") {
+      setStegoType("image");
+    } else if (inferred === "text") {
+      setStegoType("text");
+    } else if (inferred === "video") {
+      setStegoType("video");
+    }
+  }, [selectedFile]);
+
+  const hasConversation = Boolean(activeConversationId);
+
   return (
-    <div className="chat-page">
+    <div className="chat-page chat-page--premium">
       <section className="chat-sidebar">
         <div className="chat-sidebar__header">
           <div>
             <p className="section-eyebrow">Secure Chat</p>
             <h1 className="section-title">Protected Conversations</h1>
+            <p className="chat-sidebar__subtext">
+              End-to-end protected messaging with inline secure file sharing.
+            </p>
           </div>
 
           <button
@@ -929,48 +999,62 @@ export function ChatPage() {
             disabled={loadingConversations}
             type="button"
           >
-            <RefreshCw size={16} />
+            <RefreshCw size={16} className={loadingConversations ? "spin" : ""} />
             Refresh
           </button>
         </div>
 
-        <div className="chat-sidebar__connection">
+        <div
+          className={`chat-connection-pill chat-connection-pill--${socketStatus}`}
+        >
           {socketStatus === "connected" ? (
             <>
               <Wifi size={16} />
-              <span>Realtime connection active</span>
+              <span>Realtime active</span>
             </>
           ) : socketStatus === "connecting" ? (
             <>
               <LoaderCircle size={16} className="spin" />
-              <span>Connecting realtime...</span>
+              <span>Connecting…</span>
             </>
           ) : (
             <>
               <WifiOff size={16} />
-              <span>Realtime offline</span>
+              <span>Offline</span>
             </>
           )}
         </div>
 
         <div className="chat-sidebar__create">
-          <input
-            className="auth-input"
-            type="email"
-            placeholder="Start chat with email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-
-          <button
-            className="button button--primary"
-            onClick={() => void handleCreateConversation()}
-            disabled={creatingConversation}
-            type="button"
-          >
+          <div className="chat-sidebar__create-label">
             <Shield size={16} />
-            {creatingConversation ? "Creating..." : "New conversation"}
-          </button>
+            <span>Start a new protected thread</span>
+          </div>
+
+          <div className="chat-sidebar__create-row">
+            <input
+              className="auth-input"
+              type="email"
+              placeholder="Start chat with email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  void handleCreateConversation();
+                }
+              }}
+            />
+
+            <button
+              className="button button--primary"
+              onClick={() => void handleCreateConversation()}
+              disabled={creatingConversation}
+              type="button"
+            >
+              {creatingConversation ? "Creating..." : "New chat"}
+            </button>
+          </div>
         </div>
 
         <div className="chat-sidebar__search">
@@ -987,7 +1071,7 @@ export function ChatPage() {
 
         <div className="chat-conversation-list">
           {loadingConversations ? (
-            <div className="chat-empty-state">Loading conversations...</div>
+            <div className="chat-empty-state">Loading conversations…</div>
           ) : !filteredConversations.length ? (
             <div className="chat-empty-state">No conversations yet</div>
           ) : (
@@ -1048,7 +1132,7 @@ export function ChatPage() {
                 <strong>
                   {activeConversation.other_user?.email ?? "Unknown participant"}
                 </strong>
-                <span>Active protected thread</span>
+                <span>Protected live conversation</span>
               </div>
             </div>
           ) : (
@@ -1059,12 +1143,12 @@ export function ChatPage() {
         </div>
 
         <div className="chat-thread__messages">
-          {!activeConversationId ? (
+          {!hasConversation ? (
             <div className="chat-empty-state">
               Start or select a secure conversation to begin messaging.
             </div>
           ) : loadingMessages ? (
-            <div className="chat-empty-state">Loading messages...</div>
+            <div className="chat-empty-state">Loading messages…</div>
           ) : (
             <>
               {messages.map((message) => {
@@ -1097,7 +1181,8 @@ export function ChatPage() {
                           </div>
 
                           <div className="chat-file-message__title">
-                            {fileIndex[message.file_id ?? -1]?.filename ?? "Protected file attached"}
+                            {fileIndex[message.file_id ?? -1]?.filename ??
+                              "Protected file attached"}
                           </div>
 
                           {renderFilePreview(message)}
@@ -1108,17 +1193,15 @@ export function ChatPage() {
                             </div>
                           ) : null}
 
-                          <div
-                            className="chat-file-message__actions"
-                            style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginTop: "10px" }}
-                          >
+                          <div className="chat-file-message__actions">
                             <button
                               className="button button--secondary"
                               onClick={() => void handleDownloadFile(message)}
                               disabled={!message.file_id}
                               type="button"
                             >
-                              Download file
+                              <Download size={16} />
+                              Download
                             </button>
 
                             <button
@@ -1127,15 +1210,16 @@ export function ChatPage() {
                               disabled={extractingMessageId === message.id}
                               type="button"
                             >
+                              <WandSparkles size={16} />
                               {extractingMessageId === message.id
                                 ? "Extracting..."
-                                : "Extract hidden message"}
+                                : "Extract hidden data"}
                             </button>
                           </div>
 
                           {extractedData[message.id] ? (
                             <div className="chat-file-message__extract-result">
-                              <strong>Hidden data:</strong>
+                              <strong>Hidden data</strong>
                               <div>{extractedData[message.id]}</div>
                             </div>
                           ) : null}
@@ -1208,8 +1292,8 @@ export function ChatPage() {
           )}
         </div>
 
-        {activeConversationId ? (
-          <div className="chat-thread__composer">
+        {hasConversation ? (
+          <div className="chat-thread__composer chat-thread__composer--premium">
             {showFileComposer ? (
               <div className="chat-file-composer">
                 <div className="chat-file-composer__header">
@@ -1228,7 +1312,7 @@ export function ChatPage() {
                 </div>
 
                 <div className="chat-file-composer__grid">
-                  <label className="chat-file-composer__field">
+                  <label className="chat-file-composer__field chat-file-composer__field--full">
                     <span>Carrier file</span>
                     <input
                       ref={fileInputRef}
@@ -1243,16 +1327,26 @@ export function ChatPage() {
                   <label className="chat-file-composer__field">
                     <span>Stego type</span>
                     <select
+                      className="chat-thread__select"
                       value={stegoType}
                       onChange={(event) =>
                         setStegoType(event.target.value as StegoType)
                       }
                     >
                       <option value="image">Image</option>
-                      <option value="audio">Audio</option>
+                      <option value="audio">Audio (WAV only)</option>
                       <option value="text">Text</option>
                       <option value="video">Video</option>
                     </select>
+                  </label>
+
+                  <label className="chat-file-composer__field">
+                    <span>Message caption</span>
+                    <input
+                      value={caption}
+                      onChange={(event) => setCaption(event.target.value)}
+                      placeholder="Add context for the receiver"
+                    />
                   </label>
 
                   <label className="chat-file-composer__field chat-file-composer__field--full">
@@ -1264,17 +1358,29 @@ export function ChatPage() {
                       placeholder="Enter the hidden message you want to embed..."
                     />
                   </label>
-
-                  <label className="chat-file-composer__field chat-file-composer__field--full">
-                    <span>Caption (optional)</span>
-                    <input
-                      type="text"
-                      value={caption}
-                      onChange={(event) => setCaption(event.target.value)}
-                      placeholder="Add context for the receiver"
-                    />
-                  </label>
                 </div>
+
+                {selectedFile ? (
+                  <div className="chat-file-composer__meta-card">
+                    <div className="chat-file-composer__meta-icon">
+                      {getStegoIcon(stegoType)}
+                    </div>
+                    <div>
+                      <strong>{selectedFile.name}</strong>
+                      <p>
+                        Carrier ready for {stegoType} steganography
+                        {stegoType === "audio" ? " · WAV only" : ""}
+                      </p>
+                    </div>
+                  </div>
+                ) : null}
+
+                {fileValidationError ? (
+                  <div className="cf-inline-alert cf-inline-alert--error">
+                    <AlertCircle size={16} />
+                    <span>{fileValidationError}</span>
+                  </div>
+                ) : null}
 
                 {sendingFile ? (
                   <div className="upload-progress">
@@ -1297,7 +1403,7 @@ export function ChatPage() {
                   <button
                     className="button button--primary"
                     onClick={() => void handleSendFileMessage()}
-                    disabled={sendingFile}
+                    disabled={sendingFile || Boolean(fileValidationError)}
                     type="button"
                   >
                     {sendingFile ? "Sending..." : "Send Secure File"}
@@ -1308,7 +1414,7 @@ export function ChatPage() {
 
             <div className="chat-thread__input-row">
               <button
-                className="button button--secondary"
+                className="button button--secondary chat-thread__attach-button"
                 onClick={() => setShowFileComposer((prev) => !prev)}
                 type="button"
               >
