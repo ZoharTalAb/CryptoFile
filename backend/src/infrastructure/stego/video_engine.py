@@ -1,127 +1,71 @@
-import io
-import cv2
-import numpy as np
-import tempfile
-import os
 from domain.interfaces.stego_engine import StegoEngine
-from domain.exceptions import PayloadTooLargeError, CorruptedPayloadError
+from domain.exceptions import CorruptedPayloadError, PayloadTooLargeError
+
 
 class VideoStegoEngine(StegoEngine):
-    HEADER_BITS = 32
+    """
+    Container-safe video steganography engine.
 
-    def embed(self, video_bytes: bytes, encrypted_payload: bytes) -> bytes:
-        # יצירת קובץ זמני כי OpenCV עובד עם נתיבים ולא עם Bytes ישירות
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as temp_in:
-            temp_in.write(video_bytes)
-            temp_in_path = temp_in.name
+    Instead of re-encoding frames (which breaks browser playback and is fragile
+    under lossy codecs), this engine appends a hidden trailer to the end of the
+    video file:
 
-        cap = cv2.VideoCapture(temp_in_path)
-        fps = cap.get(cv2.CAP_PROP_FPS)
-        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        
-        # שימוש בפורמט 'mp4v' או 'HFYU' (Lossless) כדי שהדחיסה לא תהרוס את המידע
-        fourcc = cv2.VideoWriter_fourcc(*'HFYU') 
-        temp_out_path = temp_in_path.replace(".mp4", "_out.avi")
-        out = cv2.VideoWriter(temp_out_path, fourcc, fps, (width, height))
+        [original video bytes][payload][payload_length:8 bytes][magic]
 
-        # הכנת המידע להטמנה (כמו בתמונה)
-        length_header = len(encrypted_payload).to_bytes(4, "big")
-        full_payload = length_header + encrypted_payload
-        payload_bits = []
-        for byte in full_payload:
-            for i in range(8):
-                payload_bits.append((byte >> (7 - i)) & 1)
+    Most players and browsers ignore trailing bytes after the valid video
+    container, so playback remains intact while extraction stays deterministic.
+    """
 
-        bit_idx = 0
-        total_bits = len(payload_bits)
+    MAGIC = b"CRYPTOFILE_VIDEO_STEGO_V1"
+    LENGTH_SIZE = 8
+    MAX_PAYLOAD_BYTES = 10 * 1024 * 1024  # 10 MB safety cap
 
-        while cap.isOpened():
-            ret, frame = cap.read()
-            if not ret:
-                break
+    def embed(self, video_bytes: bytes, payload: bytes) -> bytes:
+        if not video_bytes:
+            raise CorruptedPayloadError("Video file is empty")
 
-            if bit_idx < total_bits:
-                # הפיכת הפריים ל-flat כדי להטמיע ביטים
-                flat_frame = frame.flatten()
-                
-                # הטמנה בפריימים (LSB)
-                available_space = len(flat_frame)
-                bits_to_embed = min(total_bits - bit_idx, available_space)
-                
-                for i in range(bits_to_embed):
-                    flat_frame[i] = (flat_frame[i] & 0xFE) | payload_bits[bit_idx]
-                    bit_idx += 1
-                
-                frame = flat_frame.reshape(frame.shape)
+        if payload is None:
+            raise CorruptedPayloadError("Payload is missing")
 
-            out.write(frame)
+        if len(payload) > self.MAX_PAYLOAD_BYTES:
+            raise PayloadTooLargeError("Payload is too large for video stego")
 
-        cap.release()
-        out.release()
+        if video_bytes.endswith(self.MAGIC):
+            raise CorruptedPayloadError(
+                "Video already appears to contain a stego trailer"
+            )
 
-        if bit_idx < total_bits:
-            os.remove(temp_in_path)
-            os.remove(temp_out_path)
-            raise PayloadTooLargeError()
+        payload_length = len(payload).to_bytes(self.LENGTH_SIZE, "big")
 
-        with open(temp_out_path, "rb") as f:
-            result = f.read()
-
-        # ניקוי קבצים זמניים
-        os.remove(temp_in_path)
-        os.remove(temp_out_path)
-        return result
+        return video_bytes + payload + payload_length + self.MAGIC
 
     def extract(self, video_bytes: bytes) -> bytes:
-        # לוגיקת החילוץ מהפריימים (דומה מאוד ל-Image)
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".avi") as temp_in:
-            temp_in.write(video_bytes)
-            temp_in_path = temp_in.name
+        if not video_bytes:
+            raise CorruptedPayloadError("Video file is empty")
 
-        cap = cv2.VideoCapture(temp_in_path)
-        all_bits = []
-        
-        # שליפת מספיק ביטים כדי לקרוא את ה-Header
-        header_extracted = False
-        payload_length = 0
+        minimum_size = len(self.MAGIC) + self.LENGTH_SIZE
+        if len(video_bytes) < minimum_size:
+            raise CorruptedPayloadError("Video does not contain a valid stego trailer")
 
-        while cap.isOpened():
-            ret, frame = cap.read()
-            if not ret:
-                break
-            
-            flat_frame = frame.flatten()
-            for val in flat_frame:
-                all_bits.append(val & 1)
-                
-                # אם אספנו מספיק ל-header, נחשב את האורך
-                if not header_extracted and len(all_bits) >= self.HEADER_BITS:
-                    header_bytes = bytearray()
-                    for i in range(0, self.HEADER_BITS, 8):
-                        byte = 0
-                        for j in range(8):
-                            byte = (byte << 1) | all_bits[i+j]
-                        header_bytes.append(byte)
-                    payload_length = int.from_bytes(header_bytes, "big")
-                    header_extracted = True
-            
-            if header_extracted and len(all_bits) >= self.HEADER_BITS + (payload_length * 8):
-                break
+        if not video_bytes.endswith(self.MAGIC):
+            raise CorruptedPayloadError(
+                "Could not find a valid hidden payload in video"
+            )
 
-        cap.release()
-        os.remove(temp_in_path)
+        magic_start = len(video_bytes) - len(self.MAGIC)
+        length_end = magic_start
+        length_start = length_end - self.LENGTH_SIZE
 
-        if not header_extracted or len(all_bits) < self.HEADER_BITS + (payload_length * 8):
-            raise CorruptedPayloadError()
+        if length_start < 0:
+            raise CorruptedPayloadError("Corrupted stego trailer")
 
-        # המרה חזרה ל-Bytes
-        actual_payload_bits = all_bits[self.HEADER_BITS : self.HEADER_BITS + (payload_length * 8)]
-        extracted_payload = bytearray()
-        for i in range(0, len(actual_payload_bits), 8):
-            byte = 0
-            for j in range(8):
-                byte = (byte << 1) | actual_payload_bits[i+j]
-            extracted_payload.append(byte)
+        payload_length = int.from_bytes(video_bytes[length_start:length_end], "big")
 
-        return bytes(extracted_payload)
+        if payload_length < 0 or payload_length > self.MAX_PAYLOAD_BYTES:
+            raise CorruptedPayloadError("Invalid hidden payload length")
+
+        payload_start = length_start - payload_length
+        if payload_start < 0:
+            raise CorruptedPayloadError("Corrupted hidden payload boundaries")
+
+        return video_bytes[payload_start:length_start]
