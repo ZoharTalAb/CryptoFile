@@ -1,24 +1,15 @@
+from __future__ import annotations
+
 from domain.interfaces.stego_engine import StegoEngine
 from domain.exceptions import CorruptedPayloadError, PayloadTooLargeError
 
 
 class VideoStegoEngine(StegoEngine):
-    """
-    Container-safe video steganography engine.
-
-    Instead of re-encoding frames (which breaks browser playback and is fragile
-    under lossy codecs), this engine appends a hidden trailer to the end of the
-    video file:
-
-        [original video bytes][payload][payload_length:8 bytes][magic]
-
-    Most players and browsers ignore trailing bytes after the valid video
-    container, so playback remains intact while extraction stays deterministic.
-    """
-
-    MAGIC = b"CRYPTOFILE_VIDEO_STEGO_V1"
+    BOX_TYPE = b"uuid"
+    BOX_UUID = bytes.fromhex("7d6f6e51c9d54d9d9b7f5a9d3c4e1f20")
+    MAGIC = b"CRYPTOFILE_VIDEO_STEGO_V2"
     LENGTH_SIZE = 8
-    MAX_PAYLOAD_BYTES = 10 * 1024 * 1024  # 10 MB safety cap
+    MAX_PAYLOAD_BYTES = 10 * 1024 * 1024
 
     def embed(self, video_bytes: bytes, payload: bytes) -> bytes:
         if not video_bytes:
@@ -28,44 +19,91 @@ class VideoStegoEngine(StegoEngine):
             raise CorruptedPayloadError("Payload is missing")
 
         if len(payload) > self.MAX_PAYLOAD_BYTES:
-            raise PayloadTooLargeError("Payload is too large for video stego")
+            raise PayloadTooLargeError("Payload too large")
 
-        if video_bytes.endswith(self.MAGIC):
-            raise CorruptedPayloadError(
-                "Video already appears to contain a stego trailer"
-            )
+        if not self._looks_like_mp4(video_bytes):
+            raise CorruptedPayloadError("Only MP4 supported")
 
-        payload_length = len(payload).to_bytes(self.LENGTH_SIZE, "big")
+        if self._has_stego_box(video_bytes):
+            raise CorruptedPayloadError("Video already contains stego")
 
-        return video_bytes + payload + payload_length + self.MAGIC
+        body = (
+            self.BOX_UUID
+            + self.MAGIC
+            + len(payload).to_bytes(self.LENGTH_SIZE, "big")
+            + payload
+        )
+
+        size = 8 + len(body)
+        box = size.to_bytes(4, "big") + self.BOX_TYPE + body
+
+        return video_bytes + box
 
     def extract(self, video_bytes: bytes) -> bytes:
         if not video_bytes:
             raise CorruptedPayloadError("Video file is empty")
 
-        minimum_size = len(self.MAGIC) + self.LENGTH_SIZE
-        if len(video_bytes) < minimum_size:
-            raise CorruptedPayloadError("Video does not contain a valid stego trailer")
+        if not self._looks_like_mp4(video_bytes):
+            raise CorruptedPayloadError("Only MP4 supported")
 
-        if not video_bytes.endswith(self.MAGIC):
-            raise CorruptedPayloadError(
-                "Could not find a valid hidden payload in video"
-            )
+        result = self._extract_from_tail(video_bytes)
+        if result is None:
+            raise CorruptedPayloadError("Could not find hidden payload")
 
-        magic_start = len(video_bytes) - len(self.MAGIC)
-        length_end = magic_start
-        length_start = length_end - self.LENGTH_SIZE
+        return result
 
-        if length_start < 0:
-            raise CorruptedPayloadError("Corrupted stego trailer")
+    def _looks_like_mp4(self, data: bytes) -> bool:
+        return b"ftyp" in data[:64]
 
-        payload_length = int.from_bytes(video_bytes[length_start:length_end], "big")
+    def _has_stego_box(self, data: bytes) -> bool:
+        return self._extract_from_tail(data) is not None
+
+    def _extract_from_tail(self, data: bytes) -> bytes | None:
+        magic_index = data.rfind(self.MAGIC)
+        if magic_index == -1:
+            return None
+
+        uuid_start = magic_index - len(self.BOX_UUID)
+        if uuid_start < 8:
+            raise CorruptedPayloadError("Corrupted video stego structure")
+
+        # Validate uuid
+        uuid_value = data[uuid_start:magic_index]
+        if uuid_value != self.BOX_UUID:
+            raise CorruptedPayloadError("Invalid video stego UUID")
+
+        # Validate box header
+        type_start = uuid_start - 4
+        size_start = uuid_start - 8
+
+        if size_start < 0:
+            raise CorruptedPayloadError("Invalid video stego header")
+
+        box_type = data[type_start:uuid_start]
+        if box_type != self.BOX_TYPE:
+            raise CorruptedPayloadError("Invalid video stego box type")
+
+        box_size = int.from_bytes(data[size_start:type_start], "big")
+        actual_box_size = len(data) - size_start
+
+        if box_size != actual_box_size:
+            raise CorruptedPayloadError("Corrupted video stego box length")
+
+        length_start = magic_index + len(self.MAGIC)
+        length_end = length_start + self.LENGTH_SIZE
+
+        if length_end > len(data):
+            raise CorruptedPayloadError("Corrupted hidden payload length")
+
+        payload_length = int.from_bytes(data[length_start:length_end], "big")
 
         if payload_length < 0 or payload_length > self.MAX_PAYLOAD_BYTES:
             raise CorruptedPayloadError("Invalid hidden payload length")
 
-        payload_start = length_start - payload_length
-        if payload_start < 0:
+        payload_start = length_end
+        payload_end = payload_start + payload_length
+
+        if payload_end != len(data):
             raise CorruptedPayloadError("Corrupted hidden payload boundaries")
 
-        return video_bytes[payload_start:length_start]
+        return data[payload_start:payload_end]
