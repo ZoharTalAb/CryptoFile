@@ -451,11 +451,12 @@
   margin: 0;
   white-space: pre-wrap;
   word-break: break-word;
-  color: var(--text-soft);
-  line-height: 1.7;
+  color: #e5edf7;
+  line-height: 1.65;
   max-height: 220px;
   overflow: auto;
-  font-family: inherit;
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+  font-size: 13px;
 }
 
 .vault-preview__placeholder {

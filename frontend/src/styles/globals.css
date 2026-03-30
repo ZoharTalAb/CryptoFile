@@ -5912,7 +5912,7 @@ button {
   padding: 6px;
 }
 
-..cf-preview-shell--text {
+.cf-preview-shell--text {
   background: rgba(15, 23, 42, 0.92);
   color: #e5edf7;
   font-family: "JetBrains Mono", "Fira Code", monospace;
@@ -5925,24 +5925,6 @@ button {
   white-space: pre-wrap;
   word-break: break-word;
   border: 1px solid rgba(148, 163, 184, 0.14);
-}
-
-.vault-preview--text {
-  background: rgba(15, 23, 42, 0.92);
-  color: #e5edf7;
-  border: 1px solid rgba(148, 163, 184, 0.14);
-}
-
-.vault-preview__text {
-  margin: 0;
-  white-space: pre-wrap;
-  word-break: break-word;
-  color: #e5edf7;
-  line-height: 1.65;
-  max-height: 220px;
-  overflow: auto;
-  font-family: "JetBrains Mono", "Fira Code", monospace;
-  font-size: 13px;
 }
 
 .icon-button {
