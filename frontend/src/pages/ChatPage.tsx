@@ -77,17 +77,14 @@ function inferMimeType(filename: string | undefined, stegoType?: string | null) 
       return `image/${extension === "jpg" ? "jpeg" : extension}`;
     }
 
-    if (["mp3", "wav", "ogg", "m4a", "aac"].includes(extension)) {
-      if (extension === "mp3") return "audio/mpeg";
-      if (extension === "m4a") return "audio/mp4";
-      return `audio/${extension}`;
-    }
+    if (["mp3"].includes(extension)) return "audio/mpeg";
+    if (["wav"].includes(extension)) return "audio/wav";
+    if (["ogg"].includes(extension)) return "audio/ogg";
+    if (["m4a"].includes(extension)) return "audio/mp4";
+    if (["aac"].includes(extension)) return "audio/aac";
 
-    if (["mp4", "webm", "mov", "avi", "ogg"].includes(extension)) {
-      if (extension === "mov") return "video/quicktime";
-      if (extension === "avi") return "video/x-msvideo";
-      return `video/${extension}`;
-    }
+    if (["mp4"].includes(extension)) return "video/mp4";
+    if (["webm"].includes(extension)) return "video/webm";
 
     if (["txt", "md", "csv", "json", "log"].includes(extension)) {
       return "text/plain";
@@ -607,8 +604,8 @@ export function ChatPage() {
     if (!message.file_id) return;
     if (filePreviews[message.file_id]) return;
 
+    const fallbackName = createPreviewFilename(message.file_id, message.stego_type);
     const fileMeta = fileIndex[message.file_id];
-    if (!fileMeta) return;
 
     setFilePreviews((prev) => ({
       ...prev,
@@ -617,7 +614,7 @@ export function ChatPage() {
 
     try {
       const blob = await filesService.getFileBlob(message.file_id);
-      const mimeType = inferMimeType(fileMeta.filename, message.stego_type);
+      const mimeType = inferMimeType(fileMeta?.filename ?? fallbackName, message.stego_type);
 
       if (message.stego_type === "text") {
         const text = await new Blob([blob], { type: mimeType }).text();
@@ -631,7 +628,7 @@ export function ChatPage() {
         return;
       }
 
-      const previewBlob = new Blob([blob], { type: mimeType });
+      const previewBlob = blob.type ? blob : new Blob([blob], { type: mimeType });
       const objectUrl = URL.createObjectURL(previewBlob);
       previewUrlsRef.current[message.file_id] = objectUrl;
 
@@ -721,14 +718,29 @@ export function ChatPage() {
     if (preview.kind === "video") {
       return (
         <div className="cf-preview-shell">
-          <video controls src={preview.url} className="cf-preview-video" />
+          <video
+            controls
+            playsInline
+            preload="metadata"
+            className="cf-preview-video"
+            src={preview.url}
+          />
         </div>
       );
     }
 
     if (preview.kind === "text") {
       return (
-        <div className="cf-preview-shell cf-preview-shell--text">
+        <div
+          className="cf-preview-shell cf-preview-shell--text"
+          style={{
+            background: "rgba(15, 23, 42, 0.88)",
+            color: "#e2e8f0",
+            fontFamily: "JetBrains Mono, monospace",
+            fontSize: "13px",
+            lineHeight: 1.6,
+          }}
+        >
           {preview.text || "Empty text file"}
         </div>
       );
@@ -854,11 +866,7 @@ export function ChatPage() {
 
   useEffect(() => {
     for (const message of messages) {
-      if (
-        message.message_type === "stego_file" &&
-        message.file_id &&
-        fileIndex[message.file_id]
-      ) {
+      if (message.message_type === "stego_file" && message.file_id) {
         void prepareFilePreview(message);
       }
     }
@@ -998,9 +1006,10 @@ export function ChatPage() {
             onClick={() => void loadConversations(true)}
             disabled={loadingConversations}
             type="button"
+            title="Refresh conversations"
+            aria-label="Refresh conversations"
           >
             <RefreshCw size={16} className={loadingConversations ? "spin" : ""} />
-            Refresh
           </button>
         </div>
 

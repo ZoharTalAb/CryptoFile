@@ -29,7 +29,7 @@ function inferKind(filename: string) {
 
   if (["png", "jpg", "jpeg", "gif", "webp", "bmp"].includes(ext)) return "image";
   if (["mp3", "wav", "ogg", "m4a", "aac"].includes(ext)) return "audio";
-  if (["mp4", "webm", "mov", "avi", "ogg"].includes(ext)) return "video";
+  if (["mp4", "webm"].includes(ext)) return "video";
   if (["txt", "md", "csv", "json", "log"].includes(ext)) return "text";
   return "other";
 }
@@ -41,17 +41,14 @@ function inferMimeType(filename: string) {
     return `image/${ext === "jpg" ? "jpeg" : ext}`;
   }
 
-  if (["mp3", "wav", "ogg", "m4a", "aac"].includes(ext)) {
-    if (ext === "mp3") return "audio/mpeg";
-    if (ext === "m4a") return "audio/mp4";
-    return `audio/${ext}`;
-  }
+  if (["mp3"].includes(ext)) return "audio/mpeg";
+  if (["wav"].includes(ext)) return "audio/wav";
+  if (["ogg"].includes(ext)) return "audio/ogg";
+  if (["m4a"].includes(ext)) return "audio/mp4";
+  if (["aac"].includes(ext)) return "audio/aac";
 
-  if (["mp4", "webm", "mov", "avi", "ogg"].includes(ext)) {
-    if (ext === "mov") return "video/quicktime";
-    if (ext === "avi") return "video/x-msvideo";
-    return `video/${ext}`;
-  }
+  if (["mp4"].includes(ext)) return "video/mp4";
+  if (["webm"].includes(ext)) return "video/webm";
 
   if (["txt", "md", "csv", "json", "log"].includes(ext)) {
     return "text/plain";
@@ -182,9 +179,11 @@ export function FilesPage() {
       }
 
       if (kind === "image" || kind === "audio" || kind === "video") {
-        const objectUrl = URL.createObjectURL(
-          new Blob([blob], { type: inferMimeType(file.filename) })
-        );
+        const previewBlob = blob.type
+          ? blob
+          : new Blob([blob], { type: inferMimeType(file.filename) });
+
+        const objectUrl = URL.createObjectURL(previewBlob);
         previewUrlsRef.current[file.id] = objectUrl;
 
         setPreviews((prev) => ({
@@ -299,14 +298,29 @@ export function FilesPage() {
     if (preview.kind === "video") {
       return (
         <div className="vault-preview">
-          <video controls src={preview.url} className="vault-preview__video" />
+          <video
+            controls
+            playsInline
+            preload="metadata"
+            src={preview.url}
+            className="vault-preview__video"
+          />
         </div>
       );
     }
 
     if (preview.kind === "text") {
       return (
-        <div className="vault-preview vault-preview--text">
+        <div
+          className="vault-preview vault-preview--text"
+          style={{
+            background: "rgba(15, 23, 42, 0.88)",
+            color: "#e2e8f0",
+            fontFamily: "JetBrains Mono, monospace",
+            fontSize: "13px",
+            lineHeight: 1.6,
+          }}
+        >
           <div className="vault-preview__media-top">
             <FileText size={16} />
             <span>Text snippet</span>
@@ -361,9 +375,10 @@ export function FilesPage() {
           onClick={() => void loadFiles(true)}
           disabled={refreshing}
           type="button"
+          title="Refresh files"
+          aria-label="Refresh files"
         >
           <RefreshCw size={16} className={refreshing ? "spin" : ""} />
-          {refreshing ? "Refreshing..." : "Refresh"}
         </button>
       </div>
 
