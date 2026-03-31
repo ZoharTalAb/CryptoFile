@@ -1,4 +1,5 @@
 from typing import Generator
+import os
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -34,6 +35,10 @@ def get_db() -> Generator[Session, None, None]:
 
 
 def get_storage() -> StorageInterface:
+    # Important: during Alembic migrations we do not want to initialize R2.
+    if os.getenv("RUNNING_MIGRATIONS", "").lower() == "true":
+        return LocalStorage(base_path=UPLOAD_DIR)
+
     if STORAGE_BACKEND == "r2":
         return R2Storage()
 
