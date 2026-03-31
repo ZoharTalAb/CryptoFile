@@ -2,16 +2,16 @@ import uuid
 
 from domain.enums.stego_type import StegoType
 from domain.exceptions import UnsupportedAudioFormatError
-from infrastructure.stego.stego_dispatcher import StegoDispatcher
-from infrastructure.storage.local_storage import LocalStorage
+from domain.interfaces.storage_interface import StorageInterface
 from infrastructure.db.repositories.file_repository_impl import FileRepositoryImpl
+from infrastructure.stego.stego_dispatcher import StegoDispatcher
 
 
 class CreateStegoFileUseCase:
     def __init__(
         self,
         file_repo: FileRepositoryImpl,
-        storage: LocalStorage,
+        storage: StorageInterface,
         stego_service: StegoDispatcher,
     ):
         self._file_repo = file_repo
@@ -42,7 +42,7 @@ class CreateStegoFileUseCase:
         )
 
         unique_filename = f"{uuid.uuid4()}_{original_filename}"
-        saved_path = self._storage.save(result_bytes, unique_filename)
+        file_key = self._storage.save(result_bytes, unique_filename)
 
         db_file = self._file_repo.create_file(
             filename=unique_filename,
@@ -51,13 +51,13 @@ class CreateStegoFileUseCase:
 
         self._file_repo.add_version(
             file_id=db_file.id,
-            file_path=saved_path,
+            file_path=file_key,
             version_num=1,
         )
 
         return {
             "file": db_file,
-            "saved_path": saved_path,
+            "saved_path": file_key,
             "filename": unique_filename,
             "stego_type": (
                 stego_type.value if hasattr(stego_type, "value") else str(stego_type)

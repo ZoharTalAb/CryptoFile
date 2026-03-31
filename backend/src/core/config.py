@@ -8,8 +8,15 @@ JWT_EXP_MINUTES = int(os.getenv("JWT_EXP_MINUTES", "60"))
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-# Uploads
+# Storage
 UPLOAD_DIR = os.getenv("UPLOAD_DIR", "./uploads")
+STORAGE_BACKEND = os.getenv("STORAGE_BACKEND", "local").lower()
+
+R2_ENDPOINT = os.getenv("R2_ENDPOINT")
+R2_ACCESS_KEY_ID = os.getenv("R2_ACCESS_KEY_ID")
+R2_SECRET_ACCESS_KEY = os.getenv("R2_SECRET_ACCESS_KEY")
+R2_BUCKET = os.getenv("R2_BUCKET")
+R2_REGION = os.getenv("R2_REGION", "auto")
 
 # CORS
 _raw_origins = os.getenv("CORS_ORIGINS", "")
@@ -53,6 +60,12 @@ def _require(name: str, value: str | None):
 if ENVIRONMENT == "production":
     _require("JWT_SECRET", JWT_SECRET)
     _require("DATABASE_URL", DATABASE_URL)
+
+    if STORAGE_BACKEND == "r2":
+        _require("R2_ENDPOINT", R2_ENDPOINT)
+        _require("R2_ACCESS_KEY_ID", R2_ACCESS_KEY_ID)
+        _require("R2_SECRET_ACCESS_KEY", R2_SECRET_ACCESS_KEY)
+        _require("R2_BUCKET", R2_BUCKET)
 
 # In dev/test we still require JWT_SECRET for safety
 _require("JWT_SECRET", JWT_SECRET)

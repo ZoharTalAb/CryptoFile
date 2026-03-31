@@ -6,6 +6,8 @@ from sqlalchemy.orm import Session
 
 from application.auth.jwt_service import JWTService
 from application.users.user_service import UserService
+from core.config import STORAGE_BACKEND, UPLOAD_DIR
+from domain.interfaces.storage_interface import StorageInterface
 from infrastructure.db.repositories.auth_audit_repository_impl import (
     AuthAuditRepositoryImpl,
 )
@@ -17,6 +19,8 @@ from infrastructure.db.repositories.password_reset_repository_impl import (
 )
 from infrastructure.db.repositories.user_repository_impl import UserRepositoryImpl
 from infrastructure.db.session import SessionLocal
+from infrastructure.storage.local_storage import LocalStorage
+from infrastructure.storage.r2_storage import R2Storage
 
 security = HTTPBearer()
 
@@ -27,6 +31,13 @@ def get_db() -> Generator[Session, None, None]:
         yield db
     finally:
         db.close()
+
+
+def get_storage() -> StorageInterface:
+    if STORAGE_BACKEND == "r2":
+        return R2Storage()
+
+    return LocalStorage(base_path=UPLOAD_DIR)
 
 
 def get_current_user(
