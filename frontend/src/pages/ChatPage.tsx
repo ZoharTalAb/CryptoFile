@@ -735,12 +735,31 @@ export function ChatPage() {
     }
 
     if (preview.kind === "text") {
-      return (
-        <div className="cf-preview-shell cf-preview-shell--text">
-          {preview.text || "Empty text file"}
-        </div>
-      );
-    }
+  return (
+    <div className="cf-preview-shell">
+      <pre
+        className="cf-preview-shell--text"
+        style={{
+          margin: 0,
+          background: "rgba(15, 23, 42, 0.96)",
+          color: "#e5edf7",
+          fontFamily: '"JetBrains Mono", "Fira Code", monospace',
+          fontSize: "13px",
+          lineHeight: 1.65,
+          padding: "14px",
+          borderRadius: "14px",
+          maxHeight: "220px",
+          overflow: "auto",
+          whiteSpace: "pre-wrap",
+          wordBreak: "break-word",
+          border: "1px solid rgba(148, 163, 184, 0.14)",
+        }}
+      >
+        {preview.text || "Empty text file"}
+      </pre>
+    </div>
+  );
+}
 
     if (preview.kind === "unknown") {
       return (
