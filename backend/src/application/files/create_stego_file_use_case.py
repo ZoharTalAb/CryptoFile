@@ -3,8 +3,8 @@ import uuid
 from domain.enums.stego_type import StegoType
 from domain.exceptions import UnsupportedAudioFormatError
 from domain.interfaces.storage_interface import StorageInterface
-from infrastructure.db.repositories.file_repository_impl import FileRepositoryImpl
 from infrastructure.stego.stego_dispatcher import StegoDispatcher
+from infrastructure.db.repositories.file_repository_impl import FileRepositoryImpl
 
 
 class CreateStegoFileUseCase:
@@ -42,7 +42,7 @@ class CreateStegoFileUseCase:
         )
 
         unique_filename = f"{uuid.uuid4()}_{original_filename}"
-        file_key = self._storage.save(result_bytes, unique_filename)
+        storage_key = self._storage.save(result_bytes, unique_filename)
 
         db_file = self._file_repo.create_file(
             filename=unique_filename,
@@ -51,13 +51,13 @@ class CreateStegoFileUseCase:
 
         self._file_repo.add_version(
             file_id=db_file.id,
-            file_path=file_key,
+            file_path=storage_key,
             version_num=1,
         )
 
         return {
             "file": db_file,
-            "saved_path": file_key,
+            "saved_path": storage_key,
             "filename": unique_filename,
             "stego_type": (
                 stego_type.value if hasattr(stego_type, "value") else str(stego_type)
