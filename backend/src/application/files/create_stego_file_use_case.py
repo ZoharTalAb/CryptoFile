@@ -1,9 +1,9 @@
 import uuid
 
 from domain.enums.stego_type import StegoType
-from domain.exceptions import PayloadTooLargeError
+from domain.exceptions import UnsupportedAudioFormatError
+from domain.interfaces.storage_interface import StorageInterface
 from infrastructure.stego.stego_dispatcher import StegoDispatcher
-from infrastructure.storage.local_storage import LocalStorage
 from infrastructure.db.repositories.file_repository_impl import FileRepositoryImpl
 
 
@@ -11,7 +11,7 @@ class CreateStegoFileUseCase:
     def __init__(
         self,
         file_repo: FileRepositoryImpl,
-        storage: LocalStorage,
+        storage: StorageInterface,
         stego_service: StegoDispatcher,
     ):
         self._file_repo = file_repo
@@ -26,7 +26,14 @@ class CreateStegoFileUseCase:
         secret_data: str,
         file_bytes: bytes,
     ):
-        payload = secret_data.encode("utf-8")
+        normalized_name = (original_filename or "").lower()
+
+        if stego_type == StegoType.AUDIO and not normalized_name.endswith(".wav"):
+            raise UnsupportedAudioFormatError(
+                "Audio stego currently supports WAV files only"
+            )
+
+        payload = b"TXT" + secret_data.encode("utf-8")
 
         result_bytes = self._stego_service.dispatch_embed(
             stego_type,
@@ -35,7 +42,7 @@ class CreateStegoFileUseCase:
         )
 
         unique_filename = f"{uuid.uuid4()}_{original_filename}"
-        saved_path = self._storage.save(result_bytes, unique_filename)
+        storage_key = self._storage.save(result_bytes, unique_filename)
 
         db_file = self._file_repo.create_file(
             filename=unique_filename,
@@ -44,13 +51,13 @@ class CreateStegoFileUseCase:
 
         self._file_repo.add_version(
             file_id=db_file.id,
-            file_path=saved_path,
+            file_path=storage_key,
             version_num=1,
         )
 
         return {
             "file": db_file,
-            "saved_path": saved_path,
+            "saved_path": storage_key,
             "filename": unique_filename,
             "stego_type": (
                 stego_type.value if hasattr(stego_type, "value") else str(stego_type)

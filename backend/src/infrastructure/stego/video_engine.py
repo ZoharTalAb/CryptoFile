@@ -1,127 +1,109 @@
-import io
-import cv2
-import numpy as np
-import tempfile
-import os
+from __future__ import annotations
+
 from domain.interfaces.stego_engine import StegoEngine
-from domain.exceptions import PayloadTooLargeError, CorruptedPayloadError
+from domain.exceptions import CorruptedPayloadError, PayloadTooLargeError
+
 
 class VideoStegoEngine(StegoEngine):
-    HEADER_BITS = 32
+    BOX_TYPE = b"uuid"
+    BOX_UUID = bytes.fromhex("7d6f6e51c9d54d9d9b7f5a9d3c4e1f20")
+    MAGIC = b"CRYPTOFILE_VIDEO_STEGO_V2"
+    LENGTH_SIZE = 8
+    MAX_PAYLOAD_BYTES = 10 * 1024 * 1024
 
-    def embed(self, video_bytes: bytes, encrypted_payload: bytes) -> bytes:
-        # יצירת קובץ זמני כי OpenCV עובד עם נתיבים ולא עם Bytes ישירות
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as temp_in:
-            temp_in.write(video_bytes)
-            temp_in_path = temp_in.name
+    def embed(self, video_bytes: bytes, payload: bytes) -> bytes:
+        if not video_bytes:
+            raise CorruptedPayloadError("Video file is empty")
 
-        cap = cv2.VideoCapture(temp_in_path)
-        fps = cap.get(cv2.CAP_PROP_FPS)
-        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        
-        # שימוש בפורמט 'mp4v' או 'HFYU' (Lossless) כדי שהדחיסה לא תהרוס את המידע
-        fourcc = cv2.VideoWriter_fourcc(*'HFYU') 
-        temp_out_path = temp_in_path.replace(".mp4", "_out.avi")
-        out = cv2.VideoWriter(temp_out_path, fourcc, fps, (width, height))
+        if payload is None:
+            raise CorruptedPayloadError("Payload is missing")
 
-        # הכנת המידע להטמנה (כמו בתמונה)
-        length_header = len(encrypted_payload).to_bytes(4, "big")
-        full_payload = length_header + encrypted_payload
-        payload_bits = []
-        for byte in full_payload:
-            for i in range(8):
-                payload_bits.append((byte >> (7 - i)) & 1)
+        if len(payload) > self.MAX_PAYLOAD_BYTES:
+            raise PayloadTooLargeError("Payload too large")
 
-        bit_idx = 0
-        total_bits = len(payload_bits)
+        if not self._looks_like_mp4(video_bytes):
+            raise CorruptedPayloadError("Only MP4 supported")
 
-        while cap.isOpened():
-            ret, frame = cap.read()
-            if not ret:
-                break
+        if self._has_stego_box(video_bytes):
+            raise CorruptedPayloadError("Video already contains stego")
 
-            if bit_idx < total_bits:
-                # הפיכת הפריים ל-flat כדי להטמיע ביטים
-                flat_frame = frame.flatten()
-                
-                # הטמנה בפריימים (LSB)
-                available_space = len(flat_frame)
-                bits_to_embed = min(total_bits - bit_idx, available_space)
-                
-                for i in range(bits_to_embed):
-                    flat_frame[i] = (flat_frame[i] & 0xFE) | payload_bits[bit_idx]
-                    bit_idx += 1
-                
-                frame = flat_frame.reshape(frame.shape)
+        body = (
+            self.BOX_UUID
+            + self.MAGIC
+            + len(payload).to_bytes(self.LENGTH_SIZE, "big")
+            + payload
+        )
 
-            out.write(frame)
+        size = 8 + len(body)
+        box = size.to_bytes(4, "big") + self.BOX_TYPE + body
 
-        cap.release()
-        out.release()
-
-        if bit_idx < total_bits:
-            os.remove(temp_in_path)
-            os.remove(temp_out_path)
-            raise PayloadTooLargeError()
-
-        with open(temp_out_path, "rb") as f:
-            result = f.read()
-
-        # ניקוי קבצים זמניים
-        os.remove(temp_in_path)
-        os.remove(temp_out_path)
-        return result
+        return video_bytes + box
 
     def extract(self, video_bytes: bytes) -> bytes:
-        # לוגיקת החילוץ מהפריימים (דומה מאוד ל-Image)
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".avi") as temp_in:
-            temp_in.write(video_bytes)
-            temp_in_path = temp_in.name
+        if not video_bytes:
+            raise CorruptedPayloadError("Video file is empty")
 
-        cap = cv2.VideoCapture(temp_in_path)
-        all_bits = []
-        
-        # שליפת מספיק ביטים כדי לקרוא את ה-Header
-        header_extracted = False
-        payload_length = 0
+        if not self._looks_like_mp4(video_bytes):
+            raise CorruptedPayloadError("Only MP4 supported")
 
-        while cap.isOpened():
-            ret, frame = cap.read()
-            if not ret:
-                break
-            
-            flat_frame = frame.flatten()
-            for val in flat_frame:
-                all_bits.append(val & 1)
-                
-                # אם אספנו מספיק ל-header, נחשב את האורך
-                if not header_extracted and len(all_bits) >= self.HEADER_BITS:
-                    header_bytes = bytearray()
-                    for i in range(0, self.HEADER_BITS, 8):
-                        byte = 0
-                        for j in range(8):
-                            byte = (byte << 1) | all_bits[i+j]
-                        header_bytes.append(byte)
-                    payload_length = int.from_bytes(header_bytes, "big")
-                    header_extracted = True
-            
-            if header_extracted and len(all_bits) >= self.HEADER_BITS + (payload_length * 8):
-                break
+        result = self._extract_from_tail(video_bytes)
+        if result is None:
+            raise CorruptedPayloadError("Could not find hidden payload")
 
-        cap.release()
-        os.remove(temp_in_path)
+        return result
 
-        if not header_extracted or len(all_bits) < self.HEADER_BITS + (payload_length * 8):
-            raise CorruptedPayloadError()
+    def _looks_like_mp4(self, data: bytes) -> bool:
+        return b"ftyp" in data[:64]
 
-        # המרה חזרה ל-Bytes
-        actual_payload_bits = all_bits[self.HEADER_BITS : self.HEADER_BITS + (payload_length * 8)]
-        extracted_payload = bytearray()
-        for i in range(0, len(actual_payload_bits), 8):
-            byte = 0
-            for j in range(8):
-                byte = (byte << 1) | actual_payload_bits[i+j]
-            extracted_payload.append(byte)
+    def _has_stego_box(self, data: bytes) -> bool:
+        return self._extract_from_tail(data) is not None
 
-        return bytes(extracted_payload)
+    def _extract_from_tail(self, data: bytes) -> bytes | None:
+        magic_index = data.rfind(self.MAGIC)
+        if magic_index == -1:
+            return None
+
+        uuid_start = magic_index - len(self.BOX_UUID)
+        if uuid_start < 8:
+            raise CorruptedPayloadError("Corrupted video stego structure")
+
+        # Validate uuid
+        uuid_value = data[uuid_start:magic_index]
+        if uuid_value != self.BOX_UUID:
+            raise CorruptedPayloadError("Invalid video stego UUID")
+
+        # Validate box header
+        type_start = uuid_start - 4
+        size_start = uuid_start - 8
+
+        if size_start < 0:
+            raise CorruptedPayloadError("Invalid video stego header")
+
+        box_type = data[type_start:uuid_start]
+        if box_type != self.BOX_TYPE:
+            raise CorruptedPayloadError("Invalid video stego box type")
+
+        box_size = int.from_bytes(data[size_start:type_start], "big")
+        actual_box_size = len(data) - size_start
+
+        if box_size != actual_box_size:
+            raise CorruptedPayloadError("Corrupted video stego box length")
+
+        length_start = magic_index + len(self.MAGIC)
+        length_end = length_start + self.LENGTH_SIZE
+
+        if length_end > len(data):
+            raise CorruptedPayloadError("Corrupted hidden payload length")
+
+        payload_length = int.from_bytes(data[length_start:length_end], "big")
+
+        if payload_length < 0 or payload_length > self.MAX_PAYLOAD_BYTES:
+            raise CorruptedPayloadError("Invalid hidden payload length")
+
+        payload_start = length_end
+        payload_end = payload_start + payload_length
+
+        if payload_end != len(data):
+            raise CorruptedPayloadError("Corrupted hidden payload boundaries")
+
+        return data[payload_start:payload_end]

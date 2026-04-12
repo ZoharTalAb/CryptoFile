@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
 
-from presentation.dependencies import get_current_user, get_db
+from presentation.dependencies import get_current_user, get_db, get_storage
 from presentation.schemas.chat_schema import (
     CreateConversationRequest,
     ConversationResponse,
@@ -31,6 +31,7 @@ from application.chat.extract_chat_message_use_case import (
 )
 from application.files.create_stego_file_use_case import CreateStegoFileUseCase
 
+from domain.interfaces.storage_interface import StorageInterface
 from infrastructure.db.repositories.user_repository_impl import UserRepositoryImpl
 from infrastructure.db.repositories.file_repository_impl import FileRepositoryImpl
 from infrastructure.db.repositories.conversation_repository_impl import (
@@ -39,7 +40,9 @@ from infrastructure.db.repositories.conversation_repository_impl import (
 from infrastructure.db.repositories.chat_message_repository_impl import (
     ChatMessageRepositoryImpl,
 )
-from infrastructure.storage.local_storage import LocalStorage
+from infrastructure.db.repositories.file_share_repository_impl import (
+    FileShareRepositoryImpl,
+)
 from infrastructure.stego.stego_dispatcher import StegoDispatcher
 from infrastructure.realtime.chat_connection_manager import chat_connection_manager
 
@@ -234,12 +237,13 @@ async def send_text_message(
 )
 async def send_stego_file_message(
     conversation_id: int,
-    stego_type: StegoType = Form(..., description="image, audio, or text"),
+    stego_type: StegoType = Form(..., description="image, audio, text, or video"),
     secret_data: str = Form(..., description="The secret message to embed"),
     file: UploadFile = File(...),
     caption: str | None = Form(None),
     current_user=Depends(get_current_user),
     db=Depends(get_db),
+    storage: StorageInterface = Depends(get_storage),
 ):
     conversation_repo = ConversationRepositoryImpl(db)
     chat_message_repo = ChatMessageRepositoryImpl(db)
@@ -247,14 +251,17 @@ async def send_stego_file_message(
 
     create_stego_file_use_case = CreateStegoFileUseCase(
         file_repo=file_repo,
-        storage=LocalStorage(),
+        storage=storage,
         stego_service=StegoDispatcher(),
     )
+
+    file_share_repo = FileShareRepositoryImpl(db)
 
     use_case = SendStegoFileMessageUseCase(
         conversation_repo=conversation_repo,
         chat_message_repo=chat_message_repo,
         create_stego_file_use_case=create_stego_file_use_case,
+        file_share_repo=file_share_repo,
     )
 
     try:
@@ -355,6 +362,7 @@ async def extract_chat_message(
     message_id: int,
     current_user=Depends(get_current_user),
     db=Depends(get_db),
+    storage: StorageInterface = Depends(get_storage),
 ):
     chat_message_repo = ChatMessageRepositoryImpl(db)
     conversation_repo = ConversationRepositoryImpl(db)
@@ -365,6 +373,7 @@ async def extract_chat_message(
         conversation_repo=conversation_repo,
         file_repo=file_repo,
         stego_service=StegoDispatcher(),
+        storage=storage,
     )
 
     try:

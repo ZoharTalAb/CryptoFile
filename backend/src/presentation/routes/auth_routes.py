@@ -165,15 +165,15 @@ def request_password_reset(
 ):
     service = _build_user_service(db)
 
-    reset_token = service.request_password_reset(
+    service.request_password_reset(
         email=request_body.email,
         ip_address=_get_client_ip(request),
         user_agent=_get_user_agent(request),
     )
 
     return PasswordResetRequestResponse(
-        message="If the account exists, a reset token was issued",
-        reset_token=reset_token,
+        message="If the account exists, a reset email has been sent",
+        reset_token=None,
     )
 
 

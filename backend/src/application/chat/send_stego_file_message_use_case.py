@@ -10,6 +10,9 @@ from infrastructure.db.repositories.chat_message_repository_impl import (
     ChatMessageRepositoryImpl,
 )
 from application.files.create_stego_file_use_case import CreateStegoFileUseCase
+from infrastructure.db.repositories.file_share_repository_impl import (
+    FileShareRepositoryImpl,
+)
 
 
 class SendStegoFileMessageUseCase:
@@ -18,10 +21,12 @@ class SendStegoFileMessageUseCase:
         conversation_repo: ConversationRepositoryImpl,
         chat_message_repo: ChatMessageRepositoryImpl,
         create_stego_file_use_case: CreateStegoFileUseCase,
+        file_share_repo: FileShareRepositoryImpl | None = None,
     ):
         self._conversation_repo = conversation_repo
         self._chat_message_repo = chat_message_repo
         self._create_stego_file_use_case = create_stego_file_use_case
+        self._file_share_repo = file_share_repo
 
     async def execute(
         self,
@@ -52,6 +57,22 @@ class SendStegoFileMessageUseCase:
             secret_data=secret_data,
             file_bytes=file_bytes,
         )
+
+        other_participant = self._conversation_repo.get_other_participant(
+            conversation_id=conversation_id,
+            current_user_id=sender_id,
+        )
+
+        if self._file_share_repo and other_participant:
+            if not self._file_share_repo.share_exists(
+                file_id=stego_result["file"].id,
+                target_user_id=other_participant.user_id,
+            ):
+                self._file_share_repo.create_share(
+                    file_id=stego_result["file"].id,
+                    owner_id=sender_id,
+                    target_user_id=other_participant.user_id,
+                )
 
         chat_message = self._chat_message_repo.create_stego_file_message(
             conversation_id=conversation_id,

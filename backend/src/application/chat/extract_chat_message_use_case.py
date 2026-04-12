@@ -2,7 +2,9 @@ from domain.exceptions import (
     MessageNotFoundError,
     ConversationAccessDeniedError,
     FileNotFoundError,
+    CorruptedPayloadError,
 )
+from domain.interfaces.storage_interface import StorageInterface
 from infrastructure.db.repositories.chat_message_repository_impl import (
     ChatMessageRepositoryImpl,
 )
@@ -20,11 +22,13 @@ class ExtractChatMessageUseCase:
         conversation_repo: ConversationRepositoryImpl,
         file_repo: FileRepositoryImpl,
         stego_service: StegoDispatcher,
+        storage: StorageInterface,
     ):
         self._chat_message_repo = chat_message_repo
         self._conversation_repo = conversation_repo
         self._file_repo = file_repo
         self._stego_service = stego_service
+        self._storage = storage
 
     async def execute(self, message_id: int, current_user_id: int):
         message = self._chat_message_repo.get_by_id(message_id)
@@ -46,17 +50,27 @@ class ExtractChatMessageUseCase:
         if not latest_version:
             raise FileNotFoundError("File version not found")
 
-        with open(latest_version.file_path, "rb") as f:
-            file_bytes = f.read()
+        file_bytes = self._storage.get_file(latest_version.file_path)
 
         extracted_bytes = self._stego_service.dispatch_extract(
             message.stego_type,
             file_bytes,
         )
 
+        if len(extracted_bytes) < 3:
+            raise CorruptedPayloadError("Extracted payload is invalid")
+
+        prefix = extracted_bytes[:3]
+        payload = extracted_bytes[3:]
+
+        if prefix == b"TXT":
+            extracted_message = payload.decode("utf-8", errors="replace")
+        else:
+            extracted_message = extracted_bytes.decode("utf-8", errors="replace")
+
         return {
             "message_id": message.id,
             "file_id": message.file_id,
             "stego_type": message.stego_type,
-            "extracted_message": extracted_bytes.decode("utf-8"),
+            "extracted_message": extracted_message,
         }
