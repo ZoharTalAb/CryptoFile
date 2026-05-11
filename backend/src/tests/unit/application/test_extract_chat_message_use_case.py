@@ -80,6 +80,10 @@ def generate_test_wav(duration_seconds=1, sample_rate=44100):
     return buffer.getvalue()
 
 
+def get_test_storage():
+    return LocalStorage(base_path=TEST_UPLOADS_PATH)
+
+
 def create_stego_message_for_test(
     session, sender_email="sender@example.com", recipient_email="recipient@example.com"
 ):
@@ -99,7 +103,7 @@ def create_stego_message_for_test(
 
     create_stego_file_use_case = CreateStegoFileUseCase(
         file_repo=file_repo,
-        storage=LocalStorage(base_path=TEST_UPLOADS_PATH),
+        storage=get_test_storage(),
         stego_service=StegoDispatcher(),
     )
 
@@ -143,6 +147,7 @@ def test_extract_chat_message_success_for_participant():
             conversation_repo=ConversationRepositoryImpl(session),
             file_repo=FileRepositoryImpl(session),
             stego_service=StegoDispatcher(),
+            storage=get_test_storage(),
         )
 
         result = asyncio.run(
@@ -174,6 +179,7 @@ def test_extract_chat_message_not_found():
             conversation_repo=ConversationRepositoryImpl(session),
             file_repo=FileRepositoryImpl(session),
             stego_service=StegoDispatcher(),
+            storage=get_test_storage(),
         )
 
         with pytest.raises(MessageNotFoundError):
@@ -202,6 +208,7 @@ def test_extract_chat_message_access_denied_for_non_participant():
             conversation_repo=ConversationRepositoryImpl(session),
             file_repo=FileRepositoryImpl(session),
             stego_service=StegoDispatcher(),
+            storage=get_test_storage(),
         )
 
         with pytest.raises(ConversationAccessDeniedError):
@@ -244,6 +251,7 @@ def test_extract_chat_message_without_stego_file_fails():
             conversation_repo=conversation_repo,
             file_repo=FileRepositoryImpl(session),
             stego_service=StegoDispatcher(),
+            storage=get_test_storage(),
         )
 
         with pytest.raises(FileNotFoundError):

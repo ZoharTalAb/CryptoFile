@@ -11,7 +11,6 @@ import {
   LoaderCircle,
   ImageIcon,
   FileAudio2,
-  FileText,
   Film,
   Sparkles,
   Check,
@@ -30,8 +29,18 @@ import {
 import { useToast } from "../components/common/ToastProvider";
 import { filesService, type FileItem } from "../features/files/files.service";
 
-type StegoType = "image" | "audio" | "text" | "video";
+type StegoType = "image" | "audio" | "video";
 type SocketStatus = "connecting" | "connected" | "offline";
+
+const UNSUPPORTED_TEXT_EXTENSIONS = ["txt", "md", "csv", "json", "log"];
+const UNSUPPORTED_TEXT_MESSAGE =
+  "Text-based steganography is no longer supported. Please upload image, audio, or video files.";
+
+function isUnsupportedTextFile(file: File) {
+  const extension = file.name.split(".").pop()?.toLowerCase();
+  return UNSUPPORTED_TEXT_EXTENSIONS.includes(extension ?? "");
+}
+
 
 type UploadingBubble = {
   tempId: number;
@@ -98,8 +107,6 @@ function inferMimeType(filename: string | undefined, stegoType?: string | null) 
       return "audio/wav";
     case "video":
       return "video/mp4";
-    case "text":
-      return "text/plain";
     default:
       return "application/octet-stream";
   }
@@ -113,8 +120,6 @@ function createPreviewFilename(fileId: number, stegoType?: string | null) {
       ? "wav"
       : stegoType === "video"
       ? "mp4"
-      : stegoType === "text"
-      ? "txt"
       : "bin";
 
   return `protected-file-${fileId}.${extension}`;
@@ -195,8 +200,6 @@ function getStegoIcon(type?: string | null) {
       return <ImageIcon size={16} />;
     case "audio":
       return <FileAudio2 size={16} />;
-    case "text":
-      return <FileText size={16} />;
     case "video":
       return <Film size={16} />;
     default:
@@ -228,7 +231,6 @@ function inferStegoTypeFromFile(file: File | null): StegoType | null {
   if (!ext) return null;
   if (["png", "jpg", "jpeg", "gif", "webp", "bmp"].includes(ext)) return "image";
   if (["wav", "mp3", "ogg", "m4a", "aac"].includes(ext)) return "audio";
-  if (["txt", "md", "csv", "json", "log"].includes(ext)) return "text";
   if (["mp4", "mov", "webm", "avi"].includes(ext)) return "video";
 
   return null;
@@ -239,6 +241,10 @@ function validateCarrierFile(file: File | null, stegoType: StegoType) {
 
   const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
 
+  if (UNSUPPORTED_TEXT_EXTENSIONS.includes(ext)) {
+    return UNSUPPORTED_TEXT_MESSAGE;
+  }
+
   if (stegoType === "audio" && ext !== "wav") {
     return "Audio stego currently supports WAV files only";
   }
@@ -248,13 +254,6 @@ function validateCarrierFile(file: File | null, stegoType: StegoType) {
     !["png", "jpg", "jpeg", "gif", "webp", "bmp"].includes(ext)
   ) {
     return "Image stego supports image carrier files only";
-  }
-
-  if (
-    stegoType === "text" &&
-    !["txt", "md", "csv", "json", "log"].includes(ext)
-  ) {
-    return "Text stego supports text carrier files only";
   }
 
   if (
@@ -496,6 +495,12 @@ export function ChatPage() {
       const message = "Please choose a file first";
       setPageError(message);
       showToast(message, "error");
+      return;
+    }
+
+    if (isUnsupportedTextFile(selectedFile)) {
+      setPageError(UNSUPPORTED_TEXT_MESSAGE);
+      showToast(UNSUPPORTED_TEXT_MESSAGE, "error");
       return;
     }
 
@@ -991,8 +996,6 @@ export function ChatPage() {
       setStegoType("audio");
     } else if (inferred === "image") {
       setStegoType("image");
-    } else if (inferred === "text") {
-      setStegoType("text");
     } else if (inferred === "video") {
       setStegoType("video");
     }
@@ -1337,9 +1340,26 @@ export function ChatPage() {
                     <input
                       ref={fileInputRef}
                       type="file"
-                      onChange={(event) =>
-                        setSelectedFile(event.target.files?.[0] ?? null)
-                      }
+                      accept="image/*,audio/*,video/*"
+                      onChange={(event) => {
+                        const file = event.target.files?.[0] ?? null;
+
+                        if (!file) {
+                          setSelectedFile(null);
+                          return;
+                        }
+
+                        if (isUnsupportedTextFile(file)) {
+                          setSelectedFile(null);
+                          event.currentTarget.value = "";
+                          setPageError(UNSUPPORTED_TEXT_MESSAGE);
+                          showToast(UNSUPPORTED_TEXT_MESSAGE, "error");
+                          return;
+                        }
+
+                        setPageError("");
+                        setSelectedFile(file);
+                      }}
                     />
                     <small>{selectedFileMeta ?? "Choose a supported file"}</small>
                   </label>
@@ -1355,7 +1375,6 @@ export function ChatPage() {
                     >
                       <option value="image">Image</option>
                       <option value="audio">Audio (WAV only)</option>
-                      <option value="text">Text</option>
                       <option value="video">Video</option>
                     </select>
                   </label>

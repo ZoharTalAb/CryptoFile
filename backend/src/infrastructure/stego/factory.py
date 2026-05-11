@@ -3,15 +3,14 @@ from domain.interfaces.stego_engine import StegoEngine
 
 from infrastructure.stego.audio_engine import AudioStegoEngine
 from infrastructure.stego.image_engine import ImageStegoEngine
-from infrastructure.stego.text_engine import TextStegoEngine
+from infrastructure.stego.video_engine import VideoStegoEngine
 
 
 class StegoFactory:
-
     _engines = {
         StegoType.AUDIO: AudioStegoEngine,
         StegoType.IMAGE: ImageStegoEngine,
-        StegoType.TEXT: TextStegoEngine,
+        StegoType.VIDEO: VideoStegoEngine,
     }
 
     @classmethod

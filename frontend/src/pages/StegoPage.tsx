@@ -17,9 +17,39 @@ type ActiveMode = "embed" | "extract";
 const stegoOptions: { value: StegoType; label: string; hint: string }[] = [
   { value: "image", label: "Image", hint: "PNG and image-based payload hiding" },
   { value: "audio", label: "Audio", hint: "Wave-based secure message embedding" },
-  { value: "text", label: "Text", hint: "Zero-width characters for invisible text payloads" },
   { value: "video", label: "Video", hint: "Frame-based hidden payload workflow" },
 ];
+
+const UNSUPPORTED_TEXT_EXTENSIONS = ["txt", "md", "csv", "json", "log"];
+const UNSUPPORTED_TEXT_MESSAGE =
+  "Text-based steganography is no longer supported. Please use image, audio, or video files.";
+
+function isUnsupportedTextFile(file: File) {
+  const extension = file.name.split(".").pop()?.toLowerCase();
+  return UNSUPPORTED_TEXT_EXTENSIONS.includes(extension ?? "");
+}
+
+function isSupportedMediaFile(file: File) {
+  const extension = file.name.split(".").pop()?.toLowerCase();
+  return [
+    "png",
+    "jpg",
+    "jpeg",
+    "gif",
+    "webp",
+    "bmp",
+    "wav",
+    "mp3",
+    "ogg",
+    "m4a",
+    "aac",
+    "mp4",
+    "mov",
+    "webm",
+    "avi",
+  ].includes(extension ?? "");
+}
+
 
 export function StegoPage() {
   const [activeMode, setActiveMode] = useState<ActiveMode>("embed");
@@ -51,6 +81,16 @@ export function StegoPage() {
 
     if (!embedFile) {
       setEmbedError("Please choose a file to embed into");
+      return;
+    }
+
+    if (isUnsupportedTextFile(embedFile)) {
+      setEmbedError(UNSUPPORTED_TEXT_MESSAGE);
+      return;
+    }
+
+    if (!isSupportedMediaFile(embedFile)) {
+      setEmbedError("Unsupported file type. Please use image, audio, or video files.");
       return;
     }
 
@@ -88,6 +128,16 @@ export function StegoPage() {
 
     if (!extractFile) {
       setExtractError("Please choose a file to extract from");
+      return;
+    }
+
+    if (isUnsupportedTextFile(extractFile)) {
+      setExtractError(UNSUPPORTED_TEXT_MESSAGE);
+      return;
+    }
+
+    if (!isSupportedMediaFile(extractFile)) {
+      setExtractError("Unsupported file type. Please use image, audio, or video files.");
       return;
     }
 
@@ -207,7 +257,32 @@ export function StegoPage() {
                 <div className="upload-box">
                   <input
                     type="file"
-                    onChange={(e) => setEmbedFile(e.target.files?.[0] ?? null)}
+                    accept="image/*,audio/*,video/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0] ?? null;
+
+                      if (!file) {
+                        setEmbedFile(null);
+                        return;
+                      }
+
+                      if (isUnsupportedTextFile(file)) {
+                        setEmbedError(UNSUPPORTED_TEXT_MESSAGE);
+                        setEmbedFile(null);
+                        e.currentTarget.value = "";
+                        return;
+                      }
+
+                      if (!isSupportedMediaFile(file)) {
+                        setEmbedError("Unsupported file type. Please use image, audio, or video files.");
+                        setEmbedFile(null);
+                        e.currentTarget.value = "";
+                        return;
+                      }
+
+                      setEmbedError("");
+                      setEmbedFile(file);
+                    }}
                     className="upload-box__input"
                   />
 
@@ -296,7 +371,32 @@ export function StegoPage() {
                 <div className="upload-box">
                   <input
                     type="file"
-                    onChange={(e) => setExtractFile(e.target.files?.[0] ?? null)}
+                    accept="image/*,audio/*,video/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0] ?? null;
+
+                      if (!file) {
+                        setExtractFile(null);
+                        return;
+                      }
+
+                      if (isUnsupportedTextFile(file)) {
+                        setExtractError(UNSUPPORTED_TEXT_MESSAGE);
+                        setExtractFile(null);
+                        e.currentTarget.value = "";
+                        return;
+                      }
+
+                      if (!isSupportedMediaFile(file)) {
+                        setExtractError("Unsupported file type. Please use image, audio, or video files.");
+                        setExtractFile(null);
+                        e.currentTarget.value = "";
+                        return;
+                      }
+
+                      setExtractError("");
+                      setExtractFile(file);
+                    }}
                     className="upload-box__input"
                   />
 
