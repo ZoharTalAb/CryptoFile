@@ -11,7 +11,6 @@ import {
   LoaderCircle,
   ImageIcon,
   FileAudio2,
-  FileText,
   Film,
   Sparkles,
   Check,
@@ -30,7 +29,7 @@ import {
 import { useToast } from "../components/common/ToastProvider";
 import { filesService, type FileItem } from "../features/files/files.service";
 
-type StegoType = "image" | "audio" | "text" | "video";
+type StegoType = "image" | "audio" | "video";
 type SocketStatus = "connecting" | "connected" | "offline";
 
 type UploadingBubble = {
@@ -45,11 +44,6 @@ type FilePreviewState =
   | {
       kind: "image" | "audio" | "video";
       url: string;
-      loading?: false;
-    }
-  | {
-      kind: "text";
-      text: string;
       loading?: false;
     }
   | {
@@ -86,9 +80,6 @@ function inferMimeType(filename: string | undefined, stegoType?: string | null) 
     if (["mp4"].includes(extension)) return "video/mp4";
     if (["webm"].includes(extension)) return "video/webm";
 
-    if (["txt", "md", "csv", "json", "log"].includes(extension)) {
-      return "text/plain";
-    }
   }
 
   switch (stegoType) {
@@ -98,8 +89,6 @@ function inferMimeType(filename: string | undefined, stegoType?: string | null) 
       return "audio/wav";
     case "video":
       return "video/mp4";
-    case "text":
-      return "text/plain";
     default:
       return "application/octet-stream";
   }
@@ -113,8 +102,6 @@ function createPreviewFilename(fileId: number, stegoType?: string | null) {
       ? "wav"
       : stegoType === "video"
       ? "mp4"
-      : stegoType === "text"
-      ? "txt"
       : "bin";
 
   return `protected-file-${fileId}.${extension}`;
@@ -195,8 +182,6 @@ function getStegoIcon(type?: string | null) {
       return <ImageIcon size={16} />;
     case "audio":
       return <FileAudio2 size={16} />;
-    case "text":
-      return <FileText size={16} />;
     case "video":
       return <Film size={16} />;
     default:
@@ -228,7 +213,6 @@ function inferStegoTypeFromFile(file: File | null): StegoType | null {
   if (!ext) return null;
   if (["png", "jpg", "jpeg", "gif", "webp", "bmp"].includes(ext)) return "image";
   if (["wav", "mp3", "ogg", "m4a", "aac"].includes(ext)) return "audio";
-  if (["txt", "md", "csv", "json", "log"].includes(ext)) return "text";
   if (["mp4", "mov", "webm", "avi"].includes(ext)) return "video";
 
   return null;
@@ -250,12 +234,6 @@ function validateCarrierFile(file: File | null, stegoType: StegoType) {
     return "Image stego supports image carrier files only";
   }
 
-  if (
-    stegoType === "text" &&
-    !["txt", "md", "csv", "json", "log"].includes(ext)
-  ) {
-    return "Text stego supports text carrier files only";
-  }
 
   if (
     stegoType === "video" &&
@@ -616,17 +594,6 @@ export function ChatPage() {
       const blob = await filesService.getFileBlob(message.file_id);
       const mimeType = inferMimeType(fileMeta?.filename ?? fallbackName, message.stego_type);
 
-      if (message.stego_type === "text") {
-        const text = await new Blob([blob], { type: mimeType }).text();
-        setFilePreviews((prev) => ({
-          ...prev,
-          [message.file_id as number]: {
-            kind: "text",
-            text: text.slice(0, 1200),
-          },
-        }));
-        return;
-      }
 
       const previewBlob = blob.type ? blob : new Blob([blob], { type: mimeType });
       const objectUrl = URL.createObjectURL(previewBlob);
@@ -733,33 +700,6 @@ export function ChatPage() {
         </div>
       );
     }
-
-    if (preview.kind === "text") {
-  return (
-    <div className="cf-preview-shell">
-      <pre
-        className="cf-preview-shell--text"
-        style={{
-          margin: 0,
-          background: "rgba(15, 23, 42, 0.96)",
-          color: "#e5edf7",
-          fontFamily: '"JetBrains Mono", "Fira Code", monospace',
-          fontSize: "13px",
-          lineHeight: 1.65,
-          padding: "14px",
-          borderRadius: "14px",
-          maxHeight: "220px",
-          overflow: "auto",
-          whiteSpace: "pre-wrap",
-          wordBreak: "break-word",
-          border: "1px solid rgba(148, 163, 184, 0.14)",
-        }}
-      >
-        {preview.text || "Empty text file"}
-      </pre>
-    </div>
-  );
-}
 
     if (preview.kind === "unknown") {
       return (
@@ -991,8 +931,6 @@ export function ChatPage() {
       setStegoType("audio");
     } else if (inferred === "image") {
       setStegoType("image");
-    } else if (inferred === "text") {
-      setStegoType("text");
     } else if (inferred === "video") {
       setStegoType("video");
     }
@@ -1355,7 +1293,6 @@ export function ChatPage() {
                     >
                       <option value="image">Image</option>
                       <option value="audio">Audio (WAV only)</option>
-                      <option value="text">Text</option>
                       <option value="video">Video</option>
                     </select>
                   </label>

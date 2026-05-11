@@ -237,7 +237,7 @@ async def send_text_message(
 )
 async def send_stego_file_message(
     conversation_id: int,
-    stego_type: StegoType = Form(..., description="image, audio, text, or video"),
+    stego_type: StegoType = Form(..., description="image, audio, or video"),
     secret_data: str = Form(..., description="The secret message to embed"),
     file: UploadFile = File(...),
     caption: str | None = Form(None),

@@ -29,7 +29,7 @@ stego_service = StegoDispatcher()
 
 @router.post("/embed", response_model=EmbeddedFileResponse)
 async def embed_message(
-    stego_type: StegoType = Form(..., description="image, audio, text, or video"),
+    stego_type: StegoType = Form(..., description="image, audio, or video"),
     secret_data: str = Form(..., description="The message you want to hide"),
     file: UploadFile = File(...),
     current_user=Depends(get_current_user),
@@ -81,7 +81,7 @@ async def embed_message(
 
 @router.post("/extract", response_model=ExtractResponse)
 async def extract_message(
-    stego_type: StegoType = Form(..., description="image, audio, text, or video"),
+    stego_type: StegoType = Form(..., description="image, audio, or video"),
     file: UploadFile = File(...),
 ):
     try:

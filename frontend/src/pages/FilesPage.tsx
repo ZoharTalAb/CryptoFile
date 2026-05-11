@@ -7,7 +7,6 @@ import {
   Share2,
   ImageIcon,
   FileAudio2,
-  FileText,
   Film,
   File as FileIcon,
 } from "lucide-react";
@@ -20,7 +19,6 @@ type FilePreviewState =
   | { kind: "image"; url: string }
   | { kind: "audio"; url: string }
   | { kind: "video"; url: string }
-  | { kind: "text"; text: string }
   | { kind: "other" }
   | { kind: "error"; message: string };
 
@@ -30,7 +28,6 @@ function inferKind(filename: string) {
   if (["png", "jpg", "jpeg", "gif", "webp", "bmp"].includes(ext)) return "image";
   if (["mp3", "wav", "ogg", "m4a", "aac"].includes(ext)) return "audio";
   if (["mp4", "webm"].includes(ext)) return "video";
-  if (["txt", "md", "csv", "json", "log"].includes(ext)) return "text";
   return "other";
 }
 
@@ -50,9 +47,6 @@ function inferMimeType(filename: string) {
   if (["mp4"].includes(ext)) return "video/mp4";
   if (["webm"].includes(ext)) return "video/webm";
 
-  if (["txt", "md", "csv", "json", "log"].includes(ext)) {
-    return "text/plain";
-  }
 
   return "application/octet-stream";
 }
@@ -169,14 +163,6 @@ export function FilesPage() {
       const blob = await filesService.getFileBlob(file.id);
       const kind = inferKind(file.filename);
 
-      if (kind === "text") {
-        const text = await new Blob([blob], { type: inferMimeType(file.filename) }).text();
-        setPreviews((prev) => ({
-          ...prev,
-          [file.id]: { kind: "text", text: text.slice(0, 500) },
-        }));
-        return;
-      }
 
       if (kind === "image" || kind === "audio" || kind === "video") {
         const previewBlob = blob.type
@@ -309,27 +295,6 @@ export function FilesPage() {
       );
     }
 
-    if (preview.kind === "text") {
-      return (
-        <div
-          className="vault-preview vault-preview--text"
-          style={{
-            background: "rgba(15, 23, 42, 0.88)",
-            color: "#e2e8f0",
-            fontFamily: "JetBrains Mono, monospace",
-            fontSize: "13px",
-            lineHeight: 1.6,
-          }}
-        >
-          <div className="vault-preview__media-top">
-            <FileText size={16} />
-            <span>Text snippet</span>
-          </div>
-          <pre className="vault-preview__text">{preview.text || "Empty text file"}</pre>
-        </div>
-      );
-    }
-
     if (preview.kind === "error") {
       return (
         <div className="vault-preview vault-preview--error">
@@ -354,7 +319,6 @@ export function FilesPage() {
     if (kind === "image") return <ImageIcon size={16} />;
     if (kind === "audio") return <FileAudio2 size={16} />;
     if (kind === "video") return <Film size={16} />;
-    if (kind === "text") return <FileText size={16} />;
     return <FileIcon size={16} />;
   }
 
