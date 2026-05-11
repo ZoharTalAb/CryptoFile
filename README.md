@@ -1,7 +1,8 @@
 # 🔐 CryptoFile
 
-**Secure Messaging & File Sharing with Steganography + Encryption**
 ![CryptoFile Preview](./docs/preview.png)
+
+**Secure Messaging & File Sharing with Steganography + Encryption**
 
 CryptoFile is a full-stack cloud-based system for **secure communication and file sharing**, combining modern cryptography with advanced steganography techniques.
 
