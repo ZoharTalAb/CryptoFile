@@ -117,9 +117,11 @@ infrastructure/ → database & external services
 
 ---
 
-## 🎥 Live Demo
+## 🔗 Links
 
-👉 https://cryptofile-fronted.onrender.com
+👉 GitHub Repository: https://github.com/ZoharTalAb/CryptoFile
+👉 Live Demo: https://cryptofile-fronted.onrender.com
+👉 Demo Video: https://youtu.be/DEuJJifYZoI
 
 ---
 
