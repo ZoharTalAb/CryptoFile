@@ -120,7 +120,9 @@ infrastructure/ → database & external services
 ## 🔗 Links
 
 👉 GitHub Repository: https://github.com/ZoharTalAb/CryptoFile
+
 👉 Live Demo: https://cryptofile-fronted.onrender.com
+
 👉 Demo Video: https://youtu.be/DEuJJifYZoI
 
 ---
