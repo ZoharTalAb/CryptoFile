@@ -32,16 +32,6 @@ import { filesService, type FileItem } from "../features/files/files.service";
 type StegoType = "image" | "audio" | "video";
 type SocketStatus = "connecting" | "connected" | "offline";
 
-const UNSUPPORTED_TEXT_EXTENSIONS = ["txt", "md", "csv", "json", "log"];
-const UNSUPPORTED_TEXT_MESSAGE =
-  "Text-based steganography is no longer supported. Please upload image, audio, or video files.";
-
-function isUnsupportedTextFile(file: File) {
-  const extension = file.name.split(".").pop()?.toLowerCase();
-  return UNSUPPORTED_TEXT_EXTENSIONS.includes(extension ?? "");
-}
-
-
 type UploadingBubble = {
   tempId: number;
   fileName: string;
@@ -54,11 +44,6 @@ type FilePreviewState =
   | {
       kind: "image" | "audio" | "video";
       url: string;
-      loading?: false;
-    }
-  | {
-      kind: "text";
-      text: string;
       loading?: false;
     }
   | {
@@ -95,9 +80,6 @@ function inferMimeType(filename: string | undefined, stegoType?: string | null) 
     if (["mp4"].includes(extension)) return "video/mp4";
     if (["webm"].includes(extension)) return "video/webm";
 
-    if (["txt", "md", "csv", "json", "log"].includes(extension)) {
-      return "text/plain";
-    }
   }
 
   switch (stegoType) {
@@ -241,10 +223,6 @@ function validateCarrierFile(file: File | null, stegoType: StegoType) {
 
   const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
 
-  if (UNSUPPORTED_TEXT_EXTENSIONS.includes(ext)) {
-    return UNSUPPORTED_TEXT_MESSAGE;
-  }
-
   if (stegoType === "audio" && ext !== "wav") {
     return "Audio stego currently supports WAV files only";
   }
@@ -255,6 +233,7 @@ function validateCarrierFile(file: File | null, stegoType: StegoType) {
   ) {
     return "Image stego supports image carrier files only";
   }
+
 
   if (
     stegoType === "video" &&
@@ -498,12 +477,6 @@ export function ChatPage() {
       return;
     }
 
-    if (isUnsupportedTextFile(selectedFile)) {
-      setPageError(UNSUPPORTED_TEXT_MESSAGE);
-      showToast(UNSUPPORTED_TEXT_MESSAGE, "error");
-      return;
-    }
-
     const tempId = Date.now();
 
     try {
@@ -621,19 +594,11 @@ export function ChatPage() {
       const blob = await filesService.getFileBlob(message.file_id);
       const mimeType = inferMimeType(fileMeta?.filename ?? fallbackName, message.stego_type);
 
-      if (message.stego_type === "text") {
-        const text = await new Blob([blob], { type: mimeType }).text();
-        setFilePreviews((prev) => ({
-          ...prev,
-          [message.file_id as number]: {
-            kind: "text",
-            text: text.slice(0, 1200),
-          },
-        }));
-        return;
-      }
 
-      const previewBlob = blob.type ? blob : new Blob([blob], { type: mimeType });
+      const previewBlob =
+        blob.type && blob.type !== "application/octet-stream"
+          ? blob
+          : new Blob([blob], { type: mimeType });
       const objectUrl = URL.createObjectURL(previewBlob);
       previewUrlsRef.current[message.file_id] = objectUrl;
 
@@ -738,33 +703,6 @@ export function ChatPage() {
         </div>
       );
     }
-
-    if (preview.kind === "text") {
-  return (
-    <div className="cf-preview-shell">
-      <pre
-        className="cf-preview-shell--text"
-        style={{
-          margin: 0,
-          background: "rgba(15, 23, 42, 0.96)",
-          color: "#e5edf7",
-          fontFamily: '"JetBrains Mono", "Fira Code", monospace',
-          fontSize: "13px",
-          lineHeight: 1.65,
-          padding: "14px",
-          borderRadius: "14px",
-          maxHeight: "220px",
-          overflow: "auto",
-          whiteSpace: "pre-wrap",
-          wordBreak: "break-word",
-          border: "1px solid rgba(148, 163, 184, 0.14)",
-        }}
-      >
-        {preview.text || "Empty text file"}
-      </pre>
-    </div>
-  );
-}
 
     if (preview.kind === "unknown") {
       return (
@@ -1340,26 +1278,9 @@ export function ChatPage() {
                     <input
                       ref={fileInputRef}
                       type="file"
-                      accept="image/*,audio/*,video/*"
-                      onChange={(event) => {
-                        const file = event.target.files?.[0] ?? null;
-
-                        if (!file) {
-                          setSelectedFile(null);
-                          return;
-                        }
-
-                        if (isUnsupportedTextFile(file)) {
-                          setSelectedFile(null);
-                          event.currentTarget.value = "";
-                          setPageError(UNSUPPORTED_TEXT_MESSAGE);
-                          showToast(UNSUPPORTED_TEXT_MESSAGE, "error");
-                          return;
-                        }
-
-                        setPageError("");
-                        setSelectedFile(file);
-                      }}
+                      onChange={(event) =>
+                        setSelectedFile(event.target.files?.[0] ?? null)
+                      }
                     />
                     <small>{selectedFileMeta ?? "Choose a supported file"}</small>
                   </label>
