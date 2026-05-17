@@ -1,5 +1,4 @@
 import os
-import uuid
 
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends
 from fastapi.responses import FileResponse
@@ -14,15 +13,15 @@ from domain.exceptions import (
     UnsupportedAudioFormatError,
 )
 from domain.enums.stego_type import StegoType
+from domain.interfaces.storage_interface import StorageInterface
 
-from presentation.dependencies import get_current_user, get_db
+from presentation.dependencies import get_current_user, get_db, get_storage
 from presentation.schemas.file_schema import (
     EmbeddedFileResponse,
     ExtractResponse,
     StegoFilesResponse,
 )
 
-storage = LocalStorage()
 router = APIRouter(prefix="/stego", tags=["Steganography"])
 stego_service = StegoDispatcher()
 
@@ -34,6 +33,7 @@ async def embed_message(
     file: UploadFile = File(...),
     current_user=Depends(get_current_user),
     db=Depends(get_db),
+    storage: StorageInterface = Depends(get_storage),
 ):
     try:
         if stego_type == StegoType.AUDIO and not file.filename.lower().endswith(".wav"):
@@ -45,12 +45,11 @@ async def embed_message(
         payload = b"TXT" + secret_data.encode("utf-8")
         result_bytes = stego_service.dispatch_embed(stego_type, file_bytes, payload)
 
-        unique_filename = f"{uuid.uuid4()}_{file.filename}"
-        saved_path = storage.save(result_bytes, unique_filename)
+        saved_path = storage.save(result_bytes, file.filename)
 
         file_repo = FileRepositoryImpl(db)
         db_file = file_repo.create_file(
-            filename=unique_filename,
+            filename=file.filename,
             owner_id=current_user.id,
         )
 
@@ -62,7 +61,7 @@ async def embed_message(
 
         return EmbeddedFileResponse(
             file_id=db_file.id,
-            filename=unique_filename,
+            filename=file.filename,
             original_filename=file.filename,
             stego_type=(
                 stego_type.value if hasattr(stego_type, "value") else str(stego_type)
@@ -113,8 +112,10 @@ async def extract_message(
     summary="List raw files in local stego storage (legacy/debug endpoint)",
 )
 async def list_stego_storage_files():
+    local_storage = LocalStorage()
+
     try:
-        upload_dir = storage.base_path
+        upload_dir = local_storage.base_path
         if not os.path.exists(upload_dir):
             return StegoFilesResponse(total_files=0, files=[])
 
@@ -129,7 +130,8 @@ async def list_stego_storage_files():
     summary="Download raw file from local stego storage (legacy/debug endpoint)",
 )
 async def download_stego_storage_file(filename: str):
-    file_path = os.path.join(storage.base_path, filename)
+    local_storage = LocalStorage()
+    file_path = os.path.join(local_storage.base_path, filename)
 
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="File not found")
