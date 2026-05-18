@@ -84,8 +84,12 @@ export const filesService = {
 
   async downloadFile(fileId: number, filename: string) {
     try {
-      const blob = await this.getFileBlob(fileId);
-      triggerBrowserDownload(blob, filename);
+      const response = await api.get(`/files/${fileId}/download`, {
+        params: { download: true },
+        responseType: "blob",
+      });
+
+      triggerBrowserDownload(response.data, filename);
     } catch (error) {
       throw new Error(extractErrorMessage(error));
     }
