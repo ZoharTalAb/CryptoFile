@@ -5,6 +5,7 @@ import { ProtectedRoute } from "../components/common/ProtectedRoute";
 import { LandingPage } from "../pages/LandingPage";
 import { LoginPage } from "../pages/LoginPage";
 import { RegisterPage } from "../pages/RegisterPage";
+import { VerifyEmailPage } from "../pages/VerifyEmailPage";
 import { ResetPasswordPage } from "../pages/ResetPasswordPage";
 import { DashboardPage } from "../pages/DashboardPage";
 import { ChatPage } from "../pages/ChatPage";
@@ -24,6 +25,10 @@ export const router = createBrowserRouter([
   {
     path: "/register",
     element: <RegisterPage />,
+  },
+  {
+    path: "/verify-email",
+    element: <VerifyEmailPage />,
   },
   {
     path: "/reset-password",

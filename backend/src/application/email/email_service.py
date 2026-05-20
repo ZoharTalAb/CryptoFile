@@ -9,6 +9,66 @@ from core.config import (
 
 
 class EmailService:
+
+    def send_email_verification_code(self, to_email: str, code: str):
+        if not RESEND_API_KEY:
+            raise RuntimeError("RESEND_API_KEY is not configured")
+
+        if not RESEND_FROM_EMAIL:
+            raise RuntimeError("RESEND_FROM_EMAIL is not configured")
+
+        payload = {
+            "from": RESEND_FROM_EMAIL,
+            "to": [to_email],
+            "subject": "Verify your CryptoFile account",
+            "text": (
+                "Welcome to CryptoFile.\n\n"
+                f"Your verification code is: {code}\n\n"
+                "This code will expire soon. If you did not create this account, you can safely ignore this email."
+            ),
+            "html": f"""
+                <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#0f172a;">
+                    <h2 style="margin-bottom:16px;">Verify your CryptoFile account</h2>
+                    <p style="font-size:16px;line-height:1.6;margin-bottom:16px;">
+                        Welcome to CryptoFile. Use the verification code below to activate your account:
+                    </p>
+                    <div style="font-size:32px;letter-spacing:8px;font-weight:700;background:#f1f5f9;color:#0f172a;border-radius:14px;padding:18px 20px;text-align:center;margin:24px 0;">
+                        {code}
+                    </div>
+                    <p style="font-size:14px;line-height:1.6;color:#475569;">
+                        This code will expire soon. If you did not create this account, you can safely ignore this email.
+                    </p>
+                </div>
+            """,
+        }
+
+        body = json.dumps(payload).encode("utf-8")
+
+        req = request.Request(
+            url="https://api.resend.com/emails",
+            data=body,
+            method="POST",
+            headers={
+                "Authorization": f"Bearer {RESEND_API_KEY}",
+                "Content-Type": "application/json",
+                "User-Agent": "CryptoFile/1.0",
+            },
+        )
+
+        try:
+            with request.urlopen(req, timeout=20) as response:
+                response_body = response.read().decode("utf-8")
+                print(f"[EMAIL] Verification response: {response.status} {response_body}")
+        except error.HTTPError as exc:
+            error_body = exc.read().decode("utf-8", errors="replace")
+            print(f"[EMAIL] Verification HTTPError: {exc.code} {error_body}")
+            raise RuntimeError(
+                f"Failed to send verification email: {error_body}"
+            ) from exc
+        except error.URLError as exc:
+            print(f"[EMAIL] Verification URLError: {exc}")
+            raise RuntimeError("Failed to reach email provider") from exc
+
     def send_password_reset_email(self, to_email: str, token: str):
         if not RESEND_API_KEY:
             raise RuntimeError("RESEND_API_KEY is not configured")

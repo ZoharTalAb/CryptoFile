@@ -82,6 +82,18 @@ class PasswordResetTokenUsedError(DomainError):
     pass
 
 
+class EmailNotVerifiedError(DomainError):
+    pass
+
+
+class EmailVerificationCodeInvalidError(DomainError):
+    pass
+
+
+class EmailVerificationCodeExpiredError(DomainError):
+    pass
+
+
 # ---------------------------
 # File/Share errors
 # ---------------------------

@@ -37,3 +37,12 @@ class MessageResponse(BaseModel):
 class PasswordResetRequestResponse(BaseModel):
     message: str
     reset_token: str | None = None
+
+
+class VerifyEmailRequest(BaseModel):
+    email: EmailStr
+    code: str = Field(..., min_length=6, max_length=6)
+
+
+class ResendVerificationCodeRequest(BaseModel):
+    email: EmailStr

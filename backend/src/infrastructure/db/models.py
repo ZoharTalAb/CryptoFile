@@ -71,6 +71,23 @@ class UserModel(Base):
         default=0,
         nullable=False,
     )
+    email_verified: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        nullable=False,
+    )
+    email_verification_code_hash: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True,
+    )
+    email_verification_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime,
+        nullable=True,
+    )
+    email_verification_sent_at: Mapped[datetime | None] = mapped_column(
+        DateTime,
+        nullable=True,
+    )
 
     files: Mapped[List["FileModel"]] = relationship("FileModel", back_populates="owner")
 

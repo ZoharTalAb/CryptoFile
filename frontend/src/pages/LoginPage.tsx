@@ -27,36 +27,6 @@ type LocationState = {
   email?: string;
 };
 
-function isValidEmail(value: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
-}
-
-function getFriendlyLoginError(message: string) {
-  const normalized = message.toLowerCase();
-
-  if (
-    normalized.includes("invalid credentials") ||
-    normalized.includes("invalid email or password") ||
-    normalized.includes("email or password")
-  ) {
-    return "The email or password is incorrect. Please check your details and try again.";
-  }
-
-  if (normalized.includes("temporarily unavailable") || normalized.includes("locked")) {
-    return "Too many failed sign-in attempts. Please wait a few minutes and try again.";
-  }
-
-  if (normalized.includes("password expired")) {
-    return "Your password has expired. Please reset it before signing in.";
-  }
-
-  if (normalized.includes("cannot connect")) {
-    return "Cannot connect to the server right now. Please check your connection and try again.";
-  }
-
-  return message || "Something went wrong. Please try again.";
-}
-
 export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -82,38 +52,20 @@ export function LoginPage() {
 
   useEffect(() => {
     if (state?.registered) {
-      setSuccess("Account created successfully. You can sign in now.");
+      setSuccess("Account created successfully. Please verify your email before signing in.");
     }
   }, [state]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const normalizedEmail = email.trim();
-
     setError("");
     setSuccess("");
-
-    if (!normalizedEmail) {
-      setError("Email is required.");
-      return;
-    }
-
-    if (!isValidEmail(normalizedEmail)) {
-      setError("Please enter a valid email address.");
-      return;
-    }
-
-    if (!password) {
-      setError("Password is required.");
-      return;
-    }
-
     setSubmitting(true);
 
     try {
       const response = await authService.login({
-        email: normalizedEmail,
+        email: email.trim(),
         password,
       });
 
@@ -123,7 +75,15 @@ export function LoginPage() {
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Something went wrong. Please try again.";
-      setError(getFriendlyLoginError(message));
+
+      if (message === "EMAIL_NOT_VERIFIED") {
+        navigate("/verify-email", {
+          state: { email: email.trim() },
+        });
+        return;
+      }
+
+      setError(message);
     } finally {
       setSubmitting(false);
     }
@@ -132,25 +92,12 @@ export function LoginPage() {
   async function handleRequestReset(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const normalizedEmail = email.trim();
-
     setError("");
     setSuccess("");
-
-    if (!normalizedEmail) {
-      setError("Email is required.");
-      return;
-    }
-
-    if (!isValidEmail(normalizedEmail)) {
-      setError("Please enter a valid email address.");
-      return;
-    }
-
     setSubmitting(true);
 
     try {
-      const response = await authService.requestPasswordReset(normalizedEmail);
+      const response = await authService.requestPasswordReset(email.trim());
 
       setSuccess(
         response.message || "If the account exists, a reset email has been sent."
@@ -158,7 +105,7 @@ export function LoginPage() {
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Something went wrong. Please try again.";
-      setError(getFriendlyLoginError(message));
+      setError(message);
     } finally {
       setSubmitting(false);
     }

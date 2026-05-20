@@ -6,6 +6,7 @@ import type {
   RegisterRequest,
   TokenResponse,
   UserResponse,
+  VerifyEmailRequest,
 } from "../types/auth.types";
 
 type PasswordResetRequestResponse = {
@@ -33,6 +34,10 @@ function extractErrorMessage(error: unknown): string {
     if (typeof data?.detail?.message === "string") {
       if (data.detail.code === "PASSWORD_EXPIRED") {
         return "Your password has expired. Please reset it before signing in.";
+      }
+
+      if (data.detail.code === "EMAIL_NOT_VERIFIED") {
+        return "EMAIL_NOT_VERIFIED";
       }
 
       return data.detail.message;
@@ -86,6 +91,27 @@ export const authService = {
   async register(payload: RegisterRequest): Promise<MessageResponse> {
     try {
       const response = await api.post<MessageResponse>("/auth/register", payload);
+      return response.data;
+    } catch (error) {
+      throw new Error(extractErrorMessage(error));
+    }
+  },
+
+  async verifyEmail(payload: VerifyEmailRequest): Promise<MessageResponse> {
+    try {
+      const response = await api.post<MessageResponse>("/auth/verify-email", payload);
+      return response.data;
+    } catch (error) {
+      throw new Error(extractErrorMessage(error));
+    }
+  },
+
+  async resendVerificationCode(email: string): Promise<MessageResponse> {
+    try {
+      const response = await api.post<MessageResponse>(
+        "/auth/resend-verification-code",
+        { email }
+      );
       return response.data;
     } catch (error) {
       throw new Error(extractErrorMessage(error));
