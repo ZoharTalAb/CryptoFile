@@ -19,10 +19,23 @@ function extractErrorMessage(error: unknown): string {
       return "Cannot connect to server";
     }
 
+    const status = error.response.status;
     const data = error.response.data;
 
-    if (typeof data?.detail === "string") {
-      return data.detail;
+    if (status === 401) {
+      return "The email or password is incorrect. Please check your details and try again.";
+    }
+
+    if (status === 423) {
+      return "Too many failed sign-in attempts. Please wait a few minutes and try again.";
+    }
+
+    if (typeof data?.detail?.message === "string") {
+      if (data.detail.code === "PASSWORD_EXPIRED") {
+        return "Your password has expired. Please reset it before signing in.";
+      }
+
+      return data.detail.message;
     }
 
     if (Array.isArray(data?.detail) && data.detail.length > 0) {
@@ -32,25 +45,21 @@ function extractErrorMessage(error: unknown): string {
       }
     }
 
+    if (typeof data?.detail === "string") {
+      return data.detail;
+    }
+
     if (typeof data?.message === "string") {
       return data.message;
     }
 
-    if (typeof data?.detail?.message === "string") {
-      return data.detail.message;
-    }
-
-    switch (error.response.status) {
-      case 401:
-        return "Invalid email or password";
+    switch (status) {
       case 400:
-        return "Invalid request";
+        return "Invalid request. Please check the details and try again.";
       case 403:
-        return "Access denied";
-      case 423:
-        return "Login temporarily unavailable";
+        return "Access denied. Please sign in again or reset your password.";
       case 500:
-        return "Server error";
+        return "Server error. Please try again later.";
     }
   }
 
