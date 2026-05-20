@@ -182,6 +182,10 @@ function getTooltipPosition(rect: SpotlightRect | null) {
   } as const;
 }
 
+function startGuidedTour() {
+  window.dispatchEvent(new Event(GUIDED_TOUR_EVENT));
+}
+
 function GuidedTour() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -383,6 +387,15 @@ export function AppShell() {
           <Outlet />
         </main>
       </div>
+
+      <button
+        className="guided-tour-launcher"
+        onClick={startGuidedTour}
+        type="button"
+      >
+        <span className="guided-tour-launcher__dot" />
+        Guided tour
+      </button>
 
       <GuidedTour />
     </div>
