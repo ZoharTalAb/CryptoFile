@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import select
-from infrastructure.db.models import FileModel, FileVersionModel, FileShareModel
+from infrastructure.db.models import FileModel, FileVersionModel, FileShareModel, UserModel
 
 
 class FileRepositoryImpl:
@@ -47,6 +47,18 @@ class FileRepositoryImpl:
             .order_by(FileModel.created_at.desc())
         )
         return list(self.session.execute(stmt).scalars().all())
+
+    def get_share_owner_email(self, file_id: int, target_user_id: int) -> str | None:
+        stmt = (
+            select(UserModel.email)
+            .join(FileShareModel, FileShareModel.owner_id == UserModel.id)
+            .where(
+                FileShareModel.file_id == file_id,
+                FileShareModel.target_user_id == target_user_id,
+            )
+        )
+
+        return self.session.execute(stmt).scalar_one_or_none()
 
     def get_latest_version(self, file_id: int) -> FileVersionModel | None:
         stmt = (

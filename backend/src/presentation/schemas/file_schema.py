@@ -32,6 +32,7 @@ class FileItemResponse(BaseModel):
     created_at: datetime
     is_owner: bool
     download_url: str
+    shared_by_email: str | None = None
 
     class Config:
         from_attributes = True

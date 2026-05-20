@@ -10,6 +10,7 @@ import {
   FileText,
   Film,
   File as FileIcon,
+  WandSparkles,
 } from "lucide-react";
 import { filesService, type FileItem } from "../features/files/files.service";
 
@@ -71,6 +72,17 @@ function cleanFilename(filename: string) {
   return filename;
 }
 
+function canExtractFromVault(filename: string) {
+  const kind = inferKind(filename);
+  const ext = filename.split(".").pop()?.toLowerCase() ?? "";
+
+  if (kind === "image") return true;
+  if (kind === "video") return true;
+
+  // The current audio stego engine supports WAV-based extraction.
+  return kind === "audio" && ext === "wav";
+}
+
 export function FilesPage() {
   const [ownedFiles, setOwnedFiles] = useState<FileItem[]>([]);
   const [sharedFiles, setSharedFiles] = useState<FileItem[]>([]);
@@ -80,6 +92,8 @@ export function FilesPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [pageError, setPageError] = useState("");
   const [downloadLoadingId, setDownloadLoadingId] = useState<number | null>(null);
+  const [extractLoadingId, setExtractLoadingId] = useState<number | null>(null);
+  const [extractedData, setExtractedData] = useState<Record<number, string>>({});
 
   const [shareFileId, setShareFileId] = useState<number | null>(null);
   const [targetEmail, setTargetEmail] = useState("");
@@ -249,6 +263,26 @@ export function FilesPage() {
       setPageError(message);
     } finally {
       setDownloadLoadingId(null);
+    }
+  }
+
+  async function handleExtract(file: FileItem) {
+    try {
+      setPageError("");
+      setExtractLoadingId(file.id);
+
+      const result = await filesService.extractFile(file.id);
+
+      setExtractedData((prev) => ({
+        ...prev,
+        [file.id]: result.extracted_message,
+      }));
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to extract hidden data";
+      setPageError(message);
+    } finally {
+      setExtractLoadingId(null);
     }
   }
 
@@ -465,6 +499,11 @@ export function FilesPage() {
                   <p className="file-card__subtitle">
                     File ID: {file.id} · Protected asset ready for download
                   </p>
+                  {!file.is_owner && file.shared_by_email ? (
+                    <p className="file-card__subtitle">
+                      Shared by: {file.shared_by_email}
+                    </p>
+                  ) : null}
                 </div>
 
                 {renderPreview(file)}
@@ -480,6 +519,18 @@ export function FilesPage() {
                     {downloadLoadingId === file.id ? "Downloading..." : "Download"}
                   </button>
 
+                  {canExtractFromVault(file.filename) ? (
+                    <button
+                      className="button button--secondary"
+                      onClick={() => void handleExtract(file)}
+                      type="button"
+                      disabled={extractLoadingId === file.id}
+                    >
+                      <WandSparkles size={16} />
+                      {extractLoadingId === file.id ? "Extracting..." : "Extract"}
+                    </button>
+                  ) : null}
+
                   {file.is_owner ? (
                     <button
                       className="button button--primary"
@@ -491,6 +542,18 @@ export function FilesPage() {
                     </button>
                   ) : null}
                 </div>
+
+                {extractedData[file.id] ? (
+                  <div className="stego-result-card" style={{ marginTop: 16 }}>
+                    <div className="stego-result-card__header">
+                      <div>
+                        <span className="file-card__badge">Hidden message</span>
+                        <h3>Extracted data</h3>
+                      </div>
+                    </div>
+                    <div className="stego-message-output">{extractedData[file.id]}</div>
+                  </div>
+                ) : null}
 
                 {shareFileId === file.id ? (
                   <div className="file-share-panel">

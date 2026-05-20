@@ -6,6 +6,7 @@ export type FileItem = {
   created_at: string;
   is_owner: boolean;
   download_url: string;
+  shared_by_email?: string | null;
 };
 
 export type FilesListResponse = {
@@ -26,6 +27,11 @@ export type ShareFileResponse = {
   created_at: string;
 };
 
+export type ExtractFileResponse = {
+  stego_type: string;
+  extracted_message: string;
+};
+
 function extractErrorMessage(error: unknown): string {
   if (
     typeof error === "object" &&
@@ -38,6 +44,10 @@ function extractErrorMessage(error: unknown): string {
 
     if (typeof detail === "string" && detail.trim()) {
       return detail;
+    }
+
+    if (typeof detail?.message === "string" && detail.message.trim()) {
+      return detail.message;
     }
   }
 
@@ -64,6 +74,15 @@ export const filesService = {
   async shareFile(payload: ShareFilePayload): Promise<ShareFileResponse> {
     try {
       const response = await api.post<ShareFileResponse>("/share/", payload);
+      return response.data;
+    } catch (error) {
+      throw new Error(extractErrorMessage(error));
+    }
+  },
+
+  async extractFile(fileId: number): Promise<ExtractFileResponse> {
+    try {
+      const response = await api.post<ExtractFileResponse>(`/files/${fileId}/extract`);
       return response.data;
     } catch (error) {
       throw new Error(extractErrorMessage(error));
