@@ -32,6 +32,13 @@ PASSWORD_EXPIRY_DAYS = int(os.getenv("PASSWORD_EXPIRY_DAYS", "90"))
 LOGIN_MAX_FAILED_ATTEMPTS = int(os.getenv("LOGIN_MAX_FAILED_ATTEMPTS", "5"))
 LOGIN_LOCKOUT_MINUTES = int(os.getenv("LOGIN_LOCKOUT_MINUTES", "15"))
 
+# Email verification
+EMAIL_VERIFICATION_EXP_MINUTES = int(os.getenv("EMAIL_VERIFICATION_EXP_MINUTES", "15"))
+EMAIL_VERIFICATION_ENABLED = os.getenv(
+    "EMAIL_VERIFICATION_ENABLED",
+    "true" if ENVIRONMENT == "production" else "false",
+).lower() == "true"
+
 # Password reset
 RESET_TOKEN_EXP_MINUTES = int(os.getenv("RESET_TOKEN_EXP_MINUTES", "15"))
 PASSWORD_RESET_MAX_REQUESTS = int(os.getenv("PASSWORD_RESET_MAX_REQUESTS", "3"))

@@ -5939,3 +5939,72 @@ button {
 .icon-button:hover {
   background: rgba(255,255,255,0.08);
 }
+
+
+/* Final polish: readable errors and stego processing state */
+
+.security-v1__password-error {
+  margin-top: 14px;
+  width: 100%;
+  display: block;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.stego-processing-card {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 20px;
+  border: 1px solid rgba(34, 211, 238, 0.18);
+  background:
+    linear-gradient(135deg, rgba(34, 211, 238, 0.08), rgba(109, 94, 252, 0.07)),
+    rgba(255, 255, 255, 0.035);
+}
+
+.stego-processing-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  color: var(--text);
+}
+
+.stego-processing-card__top strong {
+  font-size: 0.95rem;
+}
+
+.stego-processing-card__top span {
+  color: var(--accent);
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.stego-processing-card__bar {
+  height: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.stego-processing-card__bar-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  transition: width 240ms ease;
+}
+
+.stego-processing-card p {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 0.9rem;
+  line-height: 1.65;
+}
+
+.auth-alert,
+.files-alert,
+.cf-inline-alert {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+

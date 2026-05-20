@@ -15,3 +15,7 @@ class User:
     last_failed_login_at: datetime | None
     locked_until: datetime | None
     token_version: int
+    email_verified: bool = True
+    email_verification_code_hash: str | None = None
+    email_verification_expires_at: datetime | None = None
+    email_verification_sent_at: datetime | None = None

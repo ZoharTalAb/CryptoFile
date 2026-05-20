@@ -5,6 +5,9 @@ from application.auth.jwt_service import JWTService
 from application.users.user_service import UserService
 from domain.exceptions import (
     AccountLockedError,
+    EmailNotVerifiedError,
+    EmailVerificationCodeExpiredError,
+    EmailVerificationCodeInvalidError,
     InvalidCredentialsError,
     PasswordExpiredError,
     PasswordPolicyViolationError,
@@ -32,7 +35,9 @@ from presentation.schemas.auth_schema import (
     PasswordResetRequest,
     PasswordResetRequestResponse,
     RegisterRequest,
+    ResendVerificationCodeRequest,
     TokenResponse,
+    VerifyEmailRequest,
 )
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
@@ -72,7 +77,7 @@ def register(
             ip_address=_get_client_ip(request),
             user_agent=_get_user_agent(request),
         )
-        return MessageResponse(message="User created")
+        return MessageResponse(message="User created. Verification code sent to email.")
     except UserAlreadyExistsError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -83,6 +88,53 @@ def register(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(exc),
         )
+
+
+@router.post("/verify-email", response_model=MessageResponse)
+def verify_email(
+    request_body: VerifyEmailRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    service = _build_user_service(db)
+
+    try:
+        service.verify_email(
+            email=request_body.email,
+            code=request_body.code,
+            ip_address=_get_client_ip(request),
+            user_agent=_get_user_agent(request),
+        )
+        return MessageResponse(message="Email verified successfully")
+    except EmailVerificationCodeExpiredError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Verification code expired. Please request a new code.",
+        )
+    except EmailVerificationCodeInvalidError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid verification code",
+        )
+
+
+@router.post("/resend-verification-code", response_model=MessageResponse)
+def resend_verification_code(
+    request_body: ResendVerificationCodeRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    service = _build_user_service(db)
+
+    service.resend_email_verification_code(
+        email=request_body.email,
+        ip_address=_get_client_ip(request),
+        user_agent=_get_user_agent(request),
+    )
+
+    return MessageResponse(
+        message="If the account exists and is not verified, a new code has been sent."
+    )
 
 
 @router.post("/login", response_model=TokenResponse)
@@ -113,6 +165,14 @@ def login(
             detail={
                 "message": "Password expired",
                 "code": "PASSWORD_EXPIRED",
+            },
+        )
+    except EmailNotVerifiedError:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "message": "Email address is not verified",
+                "code": "EMAIL_NOT_VERIFIED",
             },
         )
     except (InvalidCredentialsError, UserNotFoundError):

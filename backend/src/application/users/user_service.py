@@ -1,4 +1,7 @@
 from datetime import datetime, timedelta, timezone
+import hashlib
+import hmac
+import secrets
 
 from application.auth.login_protection_service import LoginProtectionService
 from application.auth.password_hasher import PasswordHasherService
@@ -10,6 +13,9 @@ from core.config import (
     PASSWORD_HISTORY_LIMIT,
     PASSWORD_RESET_MAX_REQUESTS,
     PASSWORD_RESET_WINDOW_MINUTES,
+    EMAIL_VERIFICATION_EXP_MINUTES,
+    EMAIL_VERIFICATION_ENABLED,
+    JWT_SECRET,
     RESET_TOKEN_EXP_MINUTES,
 )
 from domain.entities.auth_audit_log import AuthAuditLog
@@ -18,6 +24,9 @@ from domain.entities.password_reset_token import PasswordResetToken
 from domain.entities.user import User
 from domain.exceptions import (
     AccountLockedError,
+    EmailNotVerifiedError,
+    EmailVerificationCodeExpiredError,
+    EmailVerificationCodeInvalidError,
     InvalidCredentialsError,
     PasswordExpiredError,
     PasswordResetTokenInvalidError,
@@ -111,6 +120,9 @@ class UserService:
         now = datetime.now(timezone.utc)
         hashed_password = self._password_hasher.hash_password(password)
 
+        verification_code = self._generate_verification_code()
+        verification_code_hash = self._hash_verification_code(verification_code)
+
         user = User(
             id=None,
             email=normalized_email,
@@ -123,9 +135,25 @@ class UserService:
             last_failed_login_at=None,
             locked_until=None,
             token_version=0,
+            email_verified=not EMAIL_VERIFICATION_ENABLED,
+            email_verification_code_hash=(
+                verification_code_hash if EMAIL_VERIFICATION_ENABLED else None
+            ),
+            email_verification_expires_at=(
+                now + timedelta(minutes=EMAIL_VERIFICATION_EXP_MINUTES)
+                if EMAIL_VERIFICATION_ENABLED
+                else None
+            ),
+            email_verification_sent_at=now if EMAIL_VERIFICATION_ENABLED else None,
         )
 
         created_user = self._user_repository.save(user)
+
+        if EMAIL_VERIFICATION_ENABLED:
+            self._email_service.send_email_verification_code(
+                created_user.email,
+                verification_code,
+            )
 
         self._password_history_repository.save(
             PasswordHistoryEntry(
@@ -209,6 +237,18 @@ class UserService:
             raise InvalidCredentialsError("Invalid credentials")
 
         user = self._login_protection.reset_failures(user)
+
+        if EMAIL_VERIFICATION_ENABLED and not user.email_verified:
+            self._audit(
+                user_id=user.id,
+                email=user.email,
+                event_type="login_failure",
+                success=False,
+                reason_code="email_not_verified",
+                ip_address=ip_address,
+                user_agent=user_agent,
+            )
+            raise EmailNotVerifiedError("Email address is not verified")
 
         if self._password_hasher.needs_rehash(user.password_hash):
             user.password_hash = self._password_hasher.hash_password(password)
@@ -495,11 +535,140 @@ class UserService:
             user_agent=user_agent,
         )
 
+
+    def verify_email(
+        self,
+        email: str,
+        code: str,
+        ip_address: str | None = None,
+        user_agent: str | None = None,
+    ) -> None:
+        normalized_email = self._normalize_email(email)
+        user = self._user_repository.get_by_email(normalized_email)
+
+        if not user:
+            raise EmailVerificationCodeInvalidError("Invalid verification code")
+
+        if user.email_verified:
+            return
+
+        if not EMAIL_VERIFICATION_ENABLED:
+            user.email_verified = True
+            user.email_verification_code_hash = None
+            user.email_verification_expires_at = None
+            user.email_verification_sent_at = None
+            user.updated_at = datetime.now(timezone.utc)
+            self._user_repository.update(user)
+            return
+
+        now = datetime.now(timezone.utc)
+        expires_at = user.email_verification_expires_at
+
+        if not user.email_verification_code_hash or not expires_at:
+            raise EmailVerificationCodeInvalidError("Invalid verification code")
+
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+
+        if expires_at <= now:
+            self._audit(
+                user_id=user.id,
+                email=user.email,
+                event_type="email_verification_failure",
+                success=False,
+                reason_code="verification_code_expired",
+                ip_address=ip_address,
+                user_agent=user_agent,
+            )
+            raise EmailVerificationCodeExpiredError("Verification code expired")
+
+        provided_hash = self._hash_verification_code(code.strip())
+
+        if not hmac.compare_digest(provided_hash, user.email_verification_code_hash):
+            self._audit(
+                user_id=user.id,
+                email=user.email,
+                event_type="email_verification_failure",
+                success=False,
+                reason_code="invalid_verification_code",
+                ip_address=ip_address,
+                user_agent=user_agent,
+            )
+            raise EmailVerificationCodeInvalidError("Invalid verification code")
+
+        user.email_verified = True
+        user.email_verification_code_hash = None
+        user.email_verification_expires_at = None
+        user.email_verification_sent_at = None
+        user.updated_at = now
+
+        self._user_repository.update(user)
+
+        self._audit(
+            user_id=user.id,
+            email=user.email,
+            event_type="email_verification_success",
+            success=True,
+            reason_code="email_verified",
+            ip_address=ip_address,
+            user_agent=user_agent,
+        )
+
+    def resend_email_verification_code(
+        self,
+        email: str,
+        ip_address: str | None = None,
+        user_agent: str | None = None,
+    ) -> None:
+        normalized_email = self._normalize_email(email)
+        user = self._user_repository.get_by_email(normalized_email)
+
+        if not user:
+            return
+
+        if user.email_verified or not EMAIL_VERIFICATION_ENABLED:
+            return
+
+        now = datetime.now(timezone.utc)
+        verification_code = self._generate_verification_code()
+
+        user.email_verification_code_hash = self._hash_verification_code(
+            verification_code
+        )
+        user.email_verification_expires_at = now + timedelta(
+            minutes=EMAIL_VERIFICATION_EXP_MINUTES
+        )
+        user.email_verification_sent_at = now
+        user.updated_at = now
+
+        self._user_repository.update(user)
+        self._email_service.send_email_verification_code(user.email, verification_code)
+
+        self._audit(
+            user_id=user.id,
+            email=user.email,
+            event_type="email_verification_resent",
+            success=True,
+            reason_code="verification_code_sent",
+            ip_address=ip_address,
+            user_agent=user_agent,
+        )
+
     def get_by_email(self, email: str) -> User | None:
         return self._user_repository.get_by_email(self._normalize_email(email))
 
     def get_by_id(self, user_id: int) -> User | None:
         return self._user_repository.get_by_id(user_id)
+
+
+    def _generate_verification_code(self) -> str:
+        return f"{secrets.randbelow(1_000_000):06d}"
+
+    def _hash_verification_code(self, code: str) -> str:
+        if not JWT_SECRET:
+            raise RuntimeError("JWT_SECRET is not configured")
+
+        return hashlib.sha256(f"{JWT_SECRET}:{code}".encode("utf-8")).hexdigest()
 
     def _normalize_email(self, email: str) -> str:
         return email.strip().lower()

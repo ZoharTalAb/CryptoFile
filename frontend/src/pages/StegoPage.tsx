@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Download,
   FileKey2,
@@ -51,6 +51,34 @@ function isSupportedMediaFile(file: File) {
 }
 
 
+
+function ProcessingStatus({
+  label,
+  progress,
+}: {
+  label: string;
+  progress: number;
+}) {
+  return (
+    <div className="stego-processing-card" role="status" aria-live="polite">
+      <div className="stego-processing-card__top">
+        <strong>{label}</strong>
+        <span>{progress}%</span>
+      </div>
+      <div className="stego-processing-card__bar">
+        <div
+          className="stego-processing-card__bar-fill"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+      <p>
+        Large media files may take a few moments. Please keep this page open while
+        CryptoFile processes the file.
+      </p>
+    </div>
+  );
+}
+
 export function StegoPage() {
   const [activeMode, setActiveMode] = useState<ActiveMode>("embed");
   const [stegoType, setStegoType] = useState<StegoType>("image");
@@ -62,6 +90,8 @@ export function StegoPage() {
   const [embedLoading, setEmbedLoading] = useState(false);
   const [extractLoading, setExtractLoading] = useState(false);
   const [downloadLoading, setDownloadLoading] = useState(false);
+  const [embedProgress, setEmbedProgress] = useState(0);
+  const [extractProgress, setExtractProgress] = useState(0);
 
   const [embedError, setEmbedError] = useState("");
   const [extractError, setExtractError] = useState("");
@@ -72,6 +102,46 @@ export function StegoPage() {
   const currentTypeMeta = useMemo(() => {
     return stegoOptions.find((option) => option.value === stegoType);
   }, [stegoType]);
+
+  useEffect(() => {
+    if (!embedLoading) {
+      if (!embedResult) {
+        setEmbedProgress(0);
+      }
+      return;
+    }
+
+    setEmbedProgress(12);
+
+    const timer = window.setInterval(() => {
+      setEmbedProgress((current) => {
+        if (current >= 92) return current;
+        return current + Math.max(1, Math.round((92 - current) * 0.16));
+      });
+    }, 450);
+
+    return () => window.clearInterval(timer);
+  }, [embedLoading, embedResult]);
+
+  useEffect(() => {
+    if (!extractLoading) {
+      if (!extractResult) {
+        setExtractProgress(0);
+      }
+      return;
+    }
+
+    setExtractProgress(12);
+
+    const timer = window.setInterval(() => {
+      setExtractProgress((current) => {
+        if (current >= 92) return current;
+        return current + Math.max(1, Math.round((92 - current) * 0.16));
+      });
+    }, 450);
+
+    return () => window.clearInterval(timer);
+  }, [extractLoading, extractResult]);
 
   async function handleEmbedSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -108,6 +178,7 @@ export function StegoPage() {
         file: embedFile,
       });
 
+      setEmbedProgress(100);
       setEmbedResult(result);
       setSecretData("");
       setEmbedFile(null);
@@ -149,6 +220,7 @@ export function StegoPage() {
         file: extractFile,
       });
 
+      setExtractProgress(100);
       setExtractResult(result.extracted_message);
     } catch (error) {
       const message =
@@ -313,11 +385,18 @@ export function StegoPage() {
               <div className="auth-alert auth-alert--error">{embedError}</div>
             ) : null}
 
+            {embedLoading ? (
+              <ProcessingStatus
+                label="Embedding hidden message"
+                progress={embedProgress}
+              />
+            ) : null}
+
             <div className="stego-form__actions">
               <button
                 className="button button--primary"
                 type="submit"
-                disabled={embedLoading}
+                disabled={embedLoading || downloadLoading}
               >
                 {embedLoading ? "Embedding..." : "Create Stego File"}
               </button>
@@ -425,6 +504,13 @@ export function StegoPage() {
 
             {extractError ? (
               <div className="auth-alert auth-alert--error">{extractError}</div>
+            ) : null}
+
+            {extractLoading ? (
+              <ProcessingStatus
+                label="Extracting hidden message"
+                progress={extractProgress}
+              />
             ) : null}
 
             <div className="stego-form__actions">

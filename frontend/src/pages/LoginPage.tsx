@@ -52,7 +52,7 @@ export function LoginPage() {
 
   useEffect(() => {
     if (state?.registered) {
-      setSuccess("Account created successfully. You can sign in now.");
+      setSuccess("Account created successfully. Please verify your email before signing in.");
     }
   }, [state]);
 
@@ -75,6 +75,14 @@ export function LoginPage() {
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Something went wrong. Please try again.";
+
+      if (message === "EMAIL_NOT_VERIFIED") {
+        navigate("/verify-email", {
+          state: { email: email.trim() },
+        });
+        return;
+      }
+
       setError(message);
     } finally {
       setSubmitting(false);

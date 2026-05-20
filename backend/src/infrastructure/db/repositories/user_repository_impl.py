@@ -27,6 +27,10 @@ class UserRepositoryImpl(UserRepository):
             last_failed_login_at=user.last_failed_login_at,
             locked_until=user.locked_until,
             token_version=user.token_version,
+            email_verified=user.email_verified,
+            email_verification_code_hash=user.email_verification_code_hash,
+            email_verification_expires_at=user.email_verification_expires_at,
+            email_verification_sent_at=user.email_verification_sent_at,
         )
 
         self._session.add(model)
@@ -49,6 +53,10 @@ class UserRepositoryImpl(UserRepository):
         model.last_failed_login_at = user.last_failed_login_at
         model.locked_until = user.locked_until
         model.token_version = user.token_version
+        model.email_verified = user.email_verified
+        model.email_verification_code_hash = user.email_verification_code_hash
+        model.email_verification_expires_at = user.email_verification_expires_at
+        model.email_verification_sent_at = user.email_verification_sent_at
 
         self._session.commit()
         self._session.refresh(model)
@@ -74,4 +82,8 @@ class UserRepositoryImpl(UserRepository):
             last_failed_login_at=model.last_failed_login_at,
             locked_until=model.locked_until,
             token_version=model.token_version,
+            email_verified=model.email_verified,
+            email_verification_code_hash=model.email_verification_code_hash,
+            email_verification_expires_at=model.email_verification_expires_at,
+            email_verification_sent_at=model.email_verification_sent_at,
         )

@@ -13,6 +13,60 @@ import { useAuth } from "../features/auth/context/AuthContext";
 import { authService } from "../features/auth/services/auth.service";
 import { api } from "../lib/api";
 
+type ApiErrorLike = {
+  response?: {
+    status?: number;
+    data?: {
+      detail?: unknown;
+      message?: unknown;
+    };
+  };
+  message?: string;
+};
+
+function getApiErrorMessage(error: unknown): string {
+  const apiError = error as ApiErrorLike;
+  const status = apiError.response?.status;
+  const detail = apiError.response?.data?.detail;
+  const message = apiError.response?.data?.message;
+
+  if (typeof detail === "string") {
+    const lowerDetail = detail.toLowerCase();
+
+    if (lowerDetail.includes("invalid current password")) {
+      return "The current password you entered is incorrect. Please try again.";
+    }
+
+    if (lowerDetail.includes("already used")) {
+      return "For security reasons, your new password cannot be one you used recently.";
+    }
+
+    if (lowerDetail.includes("password")) {
+      return detail;
+    }
+
+    return detail;
+  }
+
+  if (typeof message === "string") {
+    return message;
+  }
+
+  if (status === 401) {
+    return "The current password you entered is incorrect. Please try again.";
+  }
+
+  if (status === 400) {
+    return "The new password does not meet the security requirements. Please choose a stronger password.";
+  }
+
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return "Something went wrong while updating your password. Please try again.";
+}
+
 export function SecurityPage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -26,8 +80,29 @@ export function SecurityPage() {
   const [showReloginModal, setShowReloginModal] = useState(false);
 
   async function handleChangePassword() {
-    setLoading(true);
     setError(null);
+
+    if (!currentPassword.trim()) {
+      setError("Please enter your current password.");
+      return;
+    }
+
+    if (!newPassword.trim()) {
+      setError("Please enter a new password.");
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      setError("Your new password must contain at least 8 characters.");
+      return;
+    }
+
+    if (currentPassword === newPassword) {
+      setError("Your new password must be different from your current password.");
+      return;
+    }
+
+    setLoading(true);
 
     try {
       const token = authService.getToken();
@@ -36,7 +111,7 @@ export function SecurityPage() {
         throw new Error("You are not authenticated");
       }
 
-      const response = await api.post(
+      await api.post(
         "/auth/change-password",
         {
           current_password: currentPassword,
@@ -49,18 +124,11 @@ export function SecurityPage() {
         }
       );
 
-      const successMessage =
-        response.data?.message || "Password changed successfully";
-
-      console.log(successMessage);
-
       setCurrentPassword("");
       setNewPassword("");
       setShowReloginModal(true);
     } catch (err: unknown) {
-      const msg =
-        err instanceof Error ? err.message : "Something went wrong";
-      setError(msg);
+      setError(getApiErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -166,7 +234,9 @@ export function SecurityPage() {
               </button>
 
               {error ? (
-                <p style={{ color: "#ef4444", marginTop: 8 }}>{error}</p>
+                <div className="auth-alert auth-alert--error security-v1__password-error">
+                  {error}
+                </div>
               ) : null}
             </div>
           </div>

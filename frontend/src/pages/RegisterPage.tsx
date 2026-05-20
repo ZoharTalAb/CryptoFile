@@ -48,9 +48,9 @@ export function RegisterPage() {
         password,
       });
 
-      navigate("/login", {
+      navigate("/verify-email", {
         replace: true,
-        state: { registered: true, email: email.trim() },
+        state: { email: email.trim(), registered: true },
       });
     } catch (err) {
       const message =

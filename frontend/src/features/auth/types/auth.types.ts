@@ -22,3 +22,12 @@ export type UserResponse = {
   email: string;
   created_at: string;
 };
+
+export type VerifyEmailRequest = {
+  email: string;
+  code: string;
+};
+
+export type ResendVerificationCodeRequest = {
+  email: string;
+};
