@@ -3,15 +3,20 @@ import { useNavigate } from "react-router-dom";
 import {
   Activity,
   ArrowRight,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   Clock3,
   FileKey2,
   Files,
   FolderLock,
+  KeyRound,
   MessageSquareLock,
   ShieldCheck,
   Share2,
   Sparkles,
   Vault,
+  X,
 } from "lucide-react";
 
 import { useAuth } from "../features/auth/context/AuthContext";
@@ -36,6 +41,90 @@ type DashboardActivity =
       subtitle: string;
       createdAt: string;
     };
+
+
+type OnboardingStep = {
+  title: string;
+  eyebrow: string;
+  description: string;
+  icon: React.ComponentType<{ size?: number }>;
+  highlights: string[];
+  actionLabel?: string;
+  actionPath?: string;
+};
+
+const ONBOARDING_STORAGE_KEY = "cryptofile_onboarding_seen";
+
+const onboardingSteps: OnboardingStep[] = [
+  {
+    title: "Welcome to CryptoFile",
+    eyebrow: "Start here",
+    description:
+      "CryptoFile combines secure messaging, protected file sharing and steganography in one private workspace.",
+    icon: ShieldCheck,
+    highlights: [
+      "Your account is protected with secure authentication.",
+      "Files and messages are managed through a controlled workspace.",
+      "Hidden payloads can be embedded inside supported media files.",
+    ],
+  },
+  {
+    title: "Secure Chat",
+    eyebrow: "Conversations",
+    description:
+      "Use the chat to communicate with other users and send protected media files with hidden messages.",
+    icon: MessageSquareLock,
+    highlights: [
+      "Create a conversation with another registered user.",
+      "Attach image, audio or video files.",
+      "Send steganographic files directly inside the conversation.",
+    ],
+    actionLabel: "Open chat later",
+    actionPath: "/chat",
+  },
+  {
+    title: "Files Vault",
+    eyebrow: "Protected assets",
+    description:
+      "The vault gives you one place to preview, download, share and extract hidden data from files.",
+    icon: Vault,
+    highlights: [
+      "See files you own and files shared with you.",
+      "Download or preview supported media.",
+      "Extract hidden messages directly from the vault.",
+    ],
+    actionLabel: "Open vault later",
+    actionPath: "/files",
+  },
+  {
+    title: "Stego Lab",
+    eyebrow: "Embed and extract",
+    description:
+      "The lab is a focused area for testing steganography operations without opening a chat.",
+    icon: Sparkles,
+    highlights: [
+      "Upload supported media files.",
+      "Embed a secret message into the file.",
+      "Extract a hidden message from a prepared file.",
+    ],
+    actionLabel: "Open lab later",
+    actionPath: "/stego",
+  },
+  {
+    title: "Account Security",
+    eyebrow: "Stay protected",
+    description:
+      "CryptoFile includes email verification, password controls and account security tools to protect access.",
+    icon: KeyRound,
+    highlights: [
+      "New accounts are verified using an email code.",
+      "Passwords can be updated from the Security page.",
+      "Access is controlled before sensitive actions are allowed.",
+    ],
+    actionLabel: "Review security later",
+    actionPath: "/security",
+  },
+];
 
 function parseServerDate(value?: string | null) {
   if (!value) return null;
@@ -142,6 +231,8 @@ export function DashboardPage() {
   const [sharedFiles, setSharedFiles] = useState<FileItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [pageError, setPageError] = useState("");
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [onboardingStep, setOnboardingStep] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -180,6 +271,37 @@ export function DashboardPage() {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    const alreadySeen = window.localStorage.getItem(ONBOARDING_STORAGE_KEY);
+
+    if (!alreadySeen) {
+      setShowOnboarding(true);
+    }
+  }, []);
+
+  function openOnboarding() {
+    setOnboardingStep(0);
+    setShowOnboarding(true);
+  }
+
+  function closeOnboarding() {
+    window.localStorage.setItem(ONBOARDING_STORAGE_KEY, "true");
+    setShowOnboarding(false);
+  }
+
+  function nextOnboardingStep() {
+    if (onboardingStep >= onboardingSteps.length - 1) {
+      closeOnboarding();
+      return;
+    }
+
+    setOnboardingStep((current) => current + 1);
+  }
+
+  function previousOnboardingStep() {
+    setOnboardingStep((current) => Math.max(0, current - 1));
+  }
 
   const totalFiles = ownedFiles.length + sharedFiles.length;
   const totalUnread = conversations.reduce(
@@ -261,6 +383,14 @@ export function DashboardPage() {
               type="button"
             >
               Open vault files
+            </button>
+
+            <button
+              className="button button--ghost dashboard-v2__cta"
+              onClick={openOnboarding}
+              type="button"
+            >
+              View quick tour
             </button>
           </div>
         </div>
@@ -585,6 +715,109 @@ export function DashboardPage() {
           </div>
         </aside>
       </section>
+
+      {showOnboarding ? (
+        <div className="onboarding-modal__overlay" role="dialog" aria-modal="true">
+          <div className="onboarding-modal">
+            <button
+              aria-label="Skip tutorial"
+              className="onboarding-modal__close"
+              onClick={closeOnboarding}
+              type="button"
+            >
+              <X size={18} />
+            </button>
+
+            <div className="onboarding-modal__progress">
+              {onboardingSteps.map((step, index) => (
+                <button
+                  key={step.title}
+                  aria-label={`Go to tutorial step ${index + 1}`}
+                  className={
+                    index === onboardingStep
+                      ? "onboarding-modal__dot onboarding-modal__dot--active"
+                      : "onboarding-modal__dot"
+                  }
+                  onClick={() => setOnboardingStep(index)}
+                  type="button"
+                />
+              ))}
+            </div>
+
+            {(() => {
+              const step = onboardingSteps[onboardingStep];
+              const StepIcon = step.icon;
+              const isLastStep = onboardingStep === onboardingSteps.length - 1;
+
+              return (
+                <>
+                  <div className="onboarding-modal__icon">
+                    <StepIcon size={28} />
+                  </div>
+
+                  <p className="onboarding-modal__eyebrow">{step.eyebrow}</p>
+                  <h2 className="onboarding-modal__title">{step.title}</h2>
+                  <p className="onboarding-modal__text">{step.description}</p>
+
+                  <div className="onboarding-modal__highlights">
+                    {step.highlights.map((highlight) => (
+                      <div key={highlight} className="onboarding-modal__highlight">
+                        <CheckCircle2 size={16} />
+                        <span>{highlight}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="onboarding-modal__footer">
+                    <button
+                      className="button button--ghost"
+                      onClick={closeOnboarding}
+                      type="button"
+                    >
+                      Skip tour
+                    </button>
+
+                    <div className="onboarding-modal__nav">
+                      <button
+                        className="button button--secondary"
+                        disabled={onboardingStep === 0}
+                        onClick={previousOnboardingStep}
+                        type="button"
+                      >
+                        <ChevronLeft size={16} />
+                        Back
+                      </button>
+
+                      {step.actionPath && step.actionLabel ? (
+                        <button
+                          className="button button--secondary"
+                          onClick={() => {
+                            closeOnboarding();
+                            navigate(step.actionPath!);
+                          }}
+                          type="button"
+                        >
+                          {step.actionLabel}
+                        </button>
+                      ) : null}
+
+                      <button
+                        className="button button--primary"
+                        onClick={nextOnboardingStep}
+                        type="button"
+                      >
+                        {isLastStep ? "Start using CryptoFile" : "Next"}
+                        {!isLastStep ? <ChevronRight size={16} /> : null}
+                      </button>
+                    </div>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        </div>
+      ) : null}
+
     </div>
   );
 }

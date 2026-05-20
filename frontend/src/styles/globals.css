@@ -5940,71 +5940,192 @@ button {
   background: rgba(255,255,255,0.08);
 }
 
+/* Onboarding tutorial */
 
-/* Final polish: readable errors and stego processing state */
-
-.security-v1__password-error {
-  margin-top: 14px;
-  width: 100%;
-  display: block;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+.onboarding-modal__overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 250;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(109, 94, 252, 0.18), transparent 28%),
+    radial-gradient(circle at 78% 18%, rgba(34, 211, 238, 0.12), transparent 24%),
+    rgba(2, 6, 23, 0.78);
+  backdrop-filter: blur(10px);
 }
 
-.stego-processing-card {
+.onboarding-modal {
+  position: relative;
+  width: min(100%, 720px);
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+  padding: 30px;
+  border-radius: 32px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  background:
+    radial-gradient(circle at 20% 0%, rgba(109, 94, 252, 0.18), transparent 32%),
+    radial-gradient(circle at 90% 20%, rgba(34, 211, 238, 0.12), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.055), transparent 30%),
+    rgba(8, 13, 28, 0.98);
+  box-shadow: 0 28px 90px rgba(2, 6, 23, 0.62);
+}
+
+.onboarding-modal__close {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  width: 38px;
+  height: 38px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  background: rgba(255, 255, 255, 0.045);
+  color: var(--text-soft);
+  cursor: pointer;
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease,
+    color 180ms ease;
+}
+
+.onboarding-modal__close:hover {
+  transform: translateY(-1px);
+  border-color: rgba(125, 211, 252, 0.24);
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text);
+}
+
+.onboarding-modal__progress {
+  display: flex;
+  gap: 8px;
+  padding-right: 52px;
+}
+
+.onboarding-modal__dot {
+  height: 8px;
+  width: 28px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.2);
+  cursor: pointer;
+  transition:
+    width 180ms ease,
+    background 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.onboarding-modal__dot--active {
+  width: 54px;
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  box-shadow: 0 0 0 6px rgba(34, 211, 238, 0.08);
+}
+
+.onboarding-modal__icon {
+  width: 66px;
+  height: 66px;
+  margin-top: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 22px;
+  color: var(--accent);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  background:
+    linear-gradient(135deg, rgba(109, 94, 252, 0.18), rgba(34, 211, 238, 0.1)),
+    rgba(255, 255, 255, 0.04);
+}
+
+.onboarding-modal__eyebrow {
+  margin: 22px 0 0;
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+
+.onboarding-modal__title {
+  margin: 10px 0 0;
+  max-width: 620px;
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 0.98;
+  letter-spacing: -0.05em;
+}
+
+.onboarding-modal__text {
+  margin: 16px 0 0;
+  max-width: 620px;
+  color: var(--text-soft);
+  font-size: 1rem;
+  line-height: 1.8;
+}
+
+.onboarding-modal__highlights {
   display: grid;
   gap: 12px;
-  padding: 16px;
-  border-radius: 20px;
-  border: 1px solid rgba(34, 211, 238, 0.18);
-  background:
-    linear-gradient(135deg, rgba(34, 211, 238, 0.08), rgba(109, 94, 252, 0.07)),
-    rgba(255, 255, 255, 0.035);
+  margin-top: 24px;
 }
 
-.stego-processing-card__top {
+.onboarding-modal__highlight {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  gap: 12px;
+  align-items: start;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.09);
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--text-soft);
+  line-height: 1.65;
+}
+
+.onboarding-modal__highlight svg {
+  margin-top: 3px;
+  color: var(--success);
+}
+
+.onboarding-modal__footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  color: var(--text);
+  margin-top: 28px;
+  padding-top: 22px;
+  border-top: 1px solid rgba(148, 163, 184, 0.08);
 }
 
-.stego-processing-card__top strong {
-  font-size: 0.95rem;
+.onboarding-modal__nav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
 }
 
-.stego-processing-card__top span {
-  color: var(--accent);
-  font-size: 0.86rem;
-  font-weight: 700;
+.onboarding-modal .button:disabled {
+  cursor: not-allowed;
+  opacity: 0.46;
+  transform: none;
 }
 
-.stego-processing-card__bar {
-  height: 10px;
-  border-radius: 999px;
-  overflow: hidden;
-  background: rgba(255, 255, 255, 0.08);
-}
+@media (max-width: 760px) {
+  .onboarding-modal {
+    padding: 24px;
+    border-radius: 26px;
+  }
 
-.stego-processing-card__bar-fill {
-  height: 100%;
-  border-radius: inherit;
-  background: linear-gradient(135deg, var(--primary), var(--accent));
-  transition: width 240ms ease;
-}
+  .onboarding-modal__footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
 
-.stego-processing-card p {
-  margin: 0;
-  color: var(--text-soft);
-  font-size: 0.9rem;
-  line-height: 1.65;
-}
+  .onboarding-modal__nav {
+    flex-direction: column;
+  }
 
-.auth-alert,
-.files-alert,
-.cf-inline-alert {
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  .onboarding-modal__nav .button,
+  .onboarding-modal__footer > .button {
+    width: 100%;
+  }
 }
-
