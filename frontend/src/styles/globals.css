@@ -5940,47 +5940,65 @@ button {
   background: rgba(255,255,255,0.08);
 }
 
-/* Onboarding tutorial */
+/* Guided product tour */
 
-.onboarding-modal__overlay {
+.guided-tour {
   position: fixed;
   inset: 0;
-  z-index: 250;
-  display: grid;
-  place-items: center;
-  padding: 24px;
-  background:
-    radial-gradient(circle at 20% 20%, rgba(109, 94, 252, 0.18), transparent 28%),
-    radial-gradient(circle at 78% 18%, rgba(34, 211, 238, 0.12), transparent 24%),
-    rgba(2, 6, 23, 0.78);
-  backdrop-filter: blur(10px);
+  z-index: 500;
+  pointer-events: none;
 }
 
-.onboarding-modal {
-  position: relative;
-  width: min(100%, 720px);
-  max-height: calc(100vh - 48px);
-  overflow: auto;
-  padding: 30px;
-  border-radius: 32px;
-  border: 1px solid rgba(148, 163, 184, 0.14);
-  background:
-    radial-gradient(circle at 20% 0%, rgba(109, 94, 252, 0.18), transparent 32%),
-    radial-gradient(circle at 90% 20%, rgba(34, 211, 238, 0.12), transparent 28%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.055), transparent 30%),
-    rgba(8, 13, 28, 0.98);
-  box-shadow: 0 28px 90px rgba(2, 6, 23, 0.62);
-}
-
-.onboarding-modal__close {
+.guided-tour__shade {
   position: absolute;
-  top: 18px;
-  right: 18px;
-  width: 38px;
-  height: 38px;
+  inset: 0;
+  pointer-events: auto;
+  background: rgba(2, 6, 23, 0.72);
+  backdrop-filter: blur(4px);
+}
+
+.guided-tour__spotlight {
+  position: fixed;
+  z-index: 501;
+  pointer-events: none;
+  border-radius: 24px;
+  border: 2px solid rgba(125, 211, 252, 0.86);
+  box-shadow:
+    0 0 0 9999px rgba(2, 6, 23, 0.68),
+    0 0 0 8px rgba(34, 211, 238, 0.12),
+    0 20px 70px rgba(34, 211, 238, 0.24);
+  transition:
+    top 240ms ease,
+    left 240ms ease,
+    width 240ms ease,
+    height 240ms ease;
+}
+
+.guided-tour__card {
+  position: fixed;
+  z-index: 502;
+  width: min(380px, calc(100vw - 48px));
+  pointer-events: auto;
+  padding: 22px;
+  border-radius: 26px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background:
+    radial-gradient(circle at 18% 0%, rgba(109, 94, 252, 0.2), transparent 34%),
+    radial-gradient(circle at 96% 20%, rgba(34, 211, 238, 0.13), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 30%),
+    rgba(8, 13, 28, 0.98);
+  box-shadow: 0 28px 90px rgba(2, 6, 23, 0.64);
+}
+
+.guided-tour__close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 34px;
+  height: 34px;
   display: inline-grid;
   place-items: center;
-  border-radius: 14px;
+  border-radius: 12px;
   border: 1px solid rgba(148, 163, 184, 0.12);
   background: rgba(255, 255, 255, 0.045);
   color: var(--text-soft);
@@ -5992,24 +6010,59 @@ button {
     color 180ms ease;
 }
 
-.onboarding-modal__close:hover {
+.guided-tour__close:hover {
   transform: translateY(-1px);
-  border-color: rgba(125, 211, 252, 0.24);
+  border-color: rgba(125, 211, 252, 0.26);
   background: rgba(255, 255, 255, 0.07);
   color: var(--text);
 }
 
-.onboarding-modal__progress {
+.guided-tour__meta {
   display: flex;
-  gap: 8px;
-  padding-right: 52px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-right: 46px;
 }
 
-.onboarding-modal__dot {
-  height: 8px;
-  width: 28px;
+.guided-tour__meta span {
+  color: var(--accent);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.guided-tour__meta strong {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.guided-tour__card h2 {
+  margin: 16px 0 0;
+  font-size: 1.52rem;
+  line-height: 1.08;
+  letter-spacing: -0.04em;
+}
+
+.guided-tour__card p {
+  margin: 12px 0 0;
+  color: var(--text-soft);
+  line-height: 1.75;
+  font-size: 0.95rem;
+}
+
+.guided-tour__progress {
+  display: flex;
+  gap: 7px;
+  margin-top: 18px;
+}
+
+.guided-tour__dot {
+  height: 7px;
+  width: 26px;
   border-radius: 999px;
-  background: rgba(148, 163, 184, 0.2);
+  background: rgba(148, 163, 184, 0.22);
   cursor: pointer;
   transition:
     width 180ms ease,
@@ -6017,115 +6070,65 @@ button {
     box-shadow 180ms ease;
 }
 
-.onboarding-modal__dot--active {
-  width: 54px;
+.guided-tour__dot--active {
+  width: 48px;
   background: linear-gradient(135deg, var(--primary), var(--accent));
-  box-shadow: 0 0 0 6px rgba(34, 211, 238, 0.08);
+  box-shadow: 0 0 0 5px rgba(34, 211, 238, 0.08);
 }
 
-.onboarding-modal__icon {
-  width: 66px;
-  height: 66px;
-  margin-top: 34px;
-  display: grid;
-  place-items: center;
-  border-radius: 22px;
-  color: var(--accent);
-  border: 1px solid rgba(148, 163, 184, 0.12);
-  background:
-    linear-gradient(135deg, rgba(109, 94, 252, 0.18), rgba(34, 211, 238, 0.1)),
-    rgba(255, 255, 255, 0.04);
-}
-
-.onboarding-modal__eyebrow {
-  margin: 22px 0 0;
-  color: var(--accent);
-  font-size: 0.78rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-}
-
-.onboarding-modal__title {
-  margin: 10px 0 0;
-  max-width: 620px;
-  font-size: clamp(2rem, 4vw, 3rem);
-  line-height: 0.98;
-  letter-spacing: -0.05em;
-}
-
-.onboarding-modal__text {
-  margin: 16px 0 0;
-  max-width: 620px;
-  color: var(--text-soft);
-  font-size: 1rem;
-  line-height: 1.8;
-}
-
-.onboarding-modal__highlights {
-  display: grid;
-  gap: 12px;
-  margin-top: 24px;
-}
-
-.onboarding-modal__highlight {
-  display: grid;
-  grid-template-columns: 22px 1fr;
-  gap: 12px;
-  align-items: start;
-  padding: 14px 16px;
-  border-radius: 18px;
-  border: 1px solid rgba(148, 163, 184, 0.09);
-  background: rgba(255, 255, 255, 0.035);
-  color: var(--text-soft);
-  line-height: 1.65;
-}
-
-.onboarding-modal__highlight svg {
-  margin-top: 3px;
-  color: var(--success);
-}
-
-.onboarding-modal__footer {
+.guided-tour__actions {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  margin-top: 28px;
-  padding-top: 22px;
+  margin-top: 22px;
+  padding-top: 18px;
   border-top: 1px solid rgba(148, 163, 184, 0.08);
 }
 
-.onboarding-modal__nav {
+.guided-tour__nav {
   display: flex;
-  flex-wrap: wrap;
   justify-content: flex-end;
   gap: 10px;
 }
 
-.onboarding-modal .button:disabled {
+.guided-tour .button {
+  padding: 0.76rem 1rem;
+}
+
+.guided-tour .button:disabled {
   cursor: not-allowed;
   opacity: 0.46;
   transform: none;
 }
 
 @media (max-width: 760px) {
-  .onboarding-modal {
-    padding: 24px;
-    border-radius: 26px;
+  .guided-tour__spotlight {
+    border-radius: 18px;
   }
 
-  .onboarding-modal__footer {
+  .guided-tour__card {
+    left: 24px !important;
+    right: 24px;
+    bottom: 24px;
+    top: auto !important;
+    transform: none !important;
+    width: auto;
+    max-height: 50vh;
+    overflow: auto;
+  }
+
+  .guided-tour__actions {
     flex-direction: column;
     align-items: stretch;
   }
 
-  .onboarding-modal__nav {
+  .guided-tour__nav {
     flex-direction: column;
   }
 
-  .onboarding-modal__nav .button,
-  .onboarding-modal__footer > .button {
+  .guided-tour__actions .button,
+  .guided-tour__nav .button {
     width: 100%;
   }
 }
