@@ -26,44 +26,93 @@ type SpotlightRect = {
 const guidedTourSteps: GuidedTourStep[] = [
   {
     path: "/dashboard",
-    selector: ".dashboard-v2__hero-actions",
-    label: "Dashboard shortcuts",
-    title: "Start from your workspace",
+    selector: ".dashboard-v2__hero-copy, .dashboard-v2__hero-actions",
+    label: "Dashboard overview",
+    title: "Your CryptoFile command center",
     description:
-      "These shortcuts take you to the main areas of CryptoFile. The tour will move between pages and highlight what each area is used for.",
+      "The dashboard is the starting point of the system. From here, users can quickly move to chat, the vault, the steganography lab and account security while also seeing a high-level snapshot of activity.",
+  },
+  {
+    path: "/dashboard",
+    selector: ".dashboard-v2__hero-actions",
+    label: "Quick navigation",
+    title: "Move between the main workflows",
+    description:
+      "These buttons are shortcuts to the most important workflows: secure conversations and the file vault. The tutorial does not require you to click them — it only shows where each action starts.",
+  },
+  {
+    path: "/dashboard",
+    selector: ".dashboard-v3__hero-status, .dashboard-v2__hero-status",
+    label: "System snapshot",
+    title: "Understand what is happening in the workspace",
+    description:
+      "This area summarizes the user's current workspace status, such as files, conversations and security-related signals. It helps users understand the state of the system at a glance.",
   },
   {
     path: "/chat",
     selector:
-      ".chat-conversations__create, .chat-new-thread, .chat-sidebar__create, .chat-conversations__header",
-    label: "Secure chat",
-    title: "Create conversations and send protected files",
+      ".chat-conversations__create, .chat-new-thread, .chat-sidebar__create, .chat-conversations__header, .chat-sidebar__header",
+    label: "Create conversation",
+    title: "Start a secure conversation",
     description:
-      "The chat is where users communicate, send media files and share steganographic files inside a secure conversation.",
+      "The chat area is where users communicate with registered users. A conversation is created using another user's email, and the system keeps access limited to the conversation participants.",
+  },
+  {
+    path: "/chat",
+    selector:
+      ".chat-thread__composer, .chat-thread__composer--premium, .chat-file-composer, .chat-thread",
+    label: "Send protected content",
+    title: "Send messages and steganographic files",
+    description:
+      "Inside a conversation, users can send text messages and attach supported media files. When sending a stego file, the hidden message is embedded into the media before it is shared.",
   },
   {
     path: "/files",
     selector: ".files-tabs, .files-panel, .vault-grid, .files-list",
-    label: "Files vault",
+    label: "Vault sections",
+    title: "Separate owned files from shared files",
+    description:
+      "The vault separates files uploaded by the current user from files shared by others. This makes ownership and access permissions easier to understand.",
+  },
+  {
+    path: "/files",
+    selector: ".file-card__actions, .vault-card, .file-card, .files-panel",
+    label: "Vault actions",
     title: "Preview, download, share and extract",
     description:
-      "The vault stores files you own and files shared with you. From here you can preview media, download files, share owned files and extract hidden messages.",
+      "Each supported file can be previewed or downloaded. Owned files can be shared, and steganographic files can be extracted directly from the vault without moving back to the lab.",
   },
   {
     path: "/stego",
-    selector: ".stego-panel, .stego-mode-tabs, .stego-type-grid",
-    label: "Stego Lab",
-    title: "Test embedding and extraction",
+    selector: ".stego-mode-tabs, .stego-panel__top, .stego-panel",
+    label: "Choose operation",
+    title: "Embed or extract hidden data",
     description:
-      "The Stego Lab lets you embed a secret message into supported media or extract hidden content from a prepared file without opening a chat.",
+      "The Stego Lab has two main modes: embedding a secret message into a supported media file, or extracting a hidden message from a file that already contains one.",
+  },
+  {
+    path: "/stego",
+    selector: ".stego-type-grid, .stego-form, .stego-panel",
+    label: "Supported media",
+    title: "Use the right media type",
+    description:
+      "CryptoFile focuses on media-based steganography. Users should choose the matching media type — image, WAV audio or video — so the correct stego engine is used.",
   },
   {
     path: "/security",
-    selector: ".security-v1__grid, .security-v1__hero, .security-v1__card",
+    selector: ".security-v1__hero, .security-v2__status-grid, .security-v1__grid, .security-v1__card",
     label: "Account security",
-    title: "Manage access and password security",
+    title: "Protect access to the account",
     description:
-      "The security area helps users manage account protection, including password updates and security controls around access.",
+      "The security page centralizes account protection. Users can manage password-related actions, and the system also supports email verification during registration.",
+  },
+  {
+    path: "/security",
+    selector: ".security-v1__reauth-card, .security-v1__card--wide, .security-v1__grid, .security-v1__card",
+    label: "Sensitive actions",
+    title: "Re-authentication protects important changes",
+    description:
+      "Sensitive account operations should require clear validation and controlled flows. This reduces accidental changes and helps protect the user account.",
   },
 ];
 
@@ -75,13 +124,23 @@ function getSpotlightRect(selector: string): SpotlightRect | null {
   }
 
   const rect = element.getBoundingClientRect();
-  const padding = 12;
+  const padding = 10;
+  const maxWidth = Math.min(window.innerWidth - 32, 760);
+  const maxHeight = Math.min(window.innerHeight - 32, 360);
+  const width = Math.min(rect.width + padding * 2, maxWidth);
+  const height = Math.min(rect.height + padding * 2, maxHeight);
 
   return {
-    top: Math.max(12, rect.top - padding),
-    left: Math.max(12, rect.left - padding),
-    width: Math.min(window.innerWidth - 24, rect.width + padding * 2),
-    height: Math.min(window.innerHeight - 24, rect.height + padding * 2),
+    top: Math.min(
+      Math.max(16, rect.top - padding),
+      Math.max(16, window.innerHeight - height - 16)
+    ),
+    left: Math.min(
+      Math.max(16, rect.left - padding),
+      Math.max(16, window.innerWidth - width - 16)
+    ),
+    width,
+    height,
   };
 }
 
@@ -185,7 +244,7 @@ function GuidedTour() {
         element.scrollIntoView({
           behavior: "smooth",
           block: "center",
-          inline: "center",
+          inline: "nearest",
         });
       }
 
