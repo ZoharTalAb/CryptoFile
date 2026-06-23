@@ -5940,71 +5940,313 @@ button {
   background: rgba(255,255,255,0.08);
 }
 
+/* Guided product tour */
 
-/* Final polish: readable errors and stego processing state */
-
-.security-v1__password-error {
-  margin-top: 14px;
-  width: 100%;
-  display: block;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+.guided-tour {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  pointer-events: none;
 }
 
-.stego-processing-card {
-  display: grid;
-  gap: 12px;
-  padding: 16px;
-  border-radius: 20px;
-  border: 1px solid rgba(34, 211, 238, 0.18);
+.guided-tour__shade {
+  position: absolute;
+  inset: 0;
+  pointer-events: auto;
+  background: rgba(2, 6, 23, 0.72);
+  backdrop-filter: blur(4px);
+}
+
+.guided-tour__spotlight {
+  position: fixed;
+  z-index: 501;
+  pointer-events: none;
+  border-radius: 24px;
+  border: 2px solid rgba(125, 211, 252, 0.86);
+  box-shadow:
+    0 0 0 9999px rgba(2, 6, 23, 0.68),
+    0 0 0 8px rgba(34, 211, 238, 0.12),
+    0 20px 70px rgba(34, 211, 238, 0.24);
+  transition:
+    top 240ms ease,
+    left 240ms ease,
+    width 240ms ease,
+    height 240ms ease;
+}
+
+.guided-tour__card {
+  position: fixed;
+  z-index: 502;
+  width: min(380px, calc(100vw - 48px));
+  pointer-events: auto;
+  padding: 22px;
+  border-radius: 26px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
   background:
-    linear-gradient(135deg, rgba(34, 211, 238, 0.08), rgba(109, 94, 252, 0.07)),
-    rgba(255, 255, 255, 0.035);
+    radial-gradient(circle at 18% 0%, rgba(109, 94, 252, 0.2), transparent 34%),
+    radial-gradient(circle at 96% 20%, rgba(34, 211, 238, 0.13), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 30%),
+    rgba(8, 13, 28, 0.98);
+  box-shadow: 0 28px 90px rgba(2, 6, 23, 0.64);
 }
 
-.stego-processing-card__top {
+.guided-tour__close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 34px;
+  height: 34px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  background: rgba(255, 255, 255, 0.045);
+  color: var(--text-soft);
+  cursor: pointer;
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease,
+    color 180ms ease;
+}
+
+.guided-tour__close:hover {
+  transform: translateY(-1px);
+  border-color: rgba(125, 211, 252, 0.26);
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text);
+}
+
+.guided-tour__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-right: 46px;
+}
+
+.guided-tour__meta span {
+  color: var(--accent);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.guided-tour__meta strong {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.guided-tour__card h2 {
+  margin: 16px 0 0;
+  font-size: 1.52rem;
+  line-height: 1.08;
+  letter-spacing: -0.04em;
+}
+
+.guided-tour__card p {
+  margin: 12px 0 0;
+  color: var(--text-soft);
+  line-height: 1.75;
+  font-size: 0.95rem;
+}
+
+.guided-tour__progress {
+  display: flex;
+  gap: 7px;
+  margin-top: 18px;
+}
+
+.guided-tour__dot {
+  height: 7px;
+  width: 26px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.22);
+  cursor: pointer;
+  transition:
+    width 180ms ease,
+    background 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.guided-tour__dot--active {
+  width: 48px;
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  box-shadow: 0 0 0 5px rgba(34, 211, 238, 0.08);
+}
+
+.guided-tour__actions {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  color: var(--text);
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(148, 163, 184, 0.08);
 }
 
-.stego-processing-card__top strong {
-  font-size: 0.95rem;
+.guided-tour__nav {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
 }
 
-.stego-processing-card__top span {
-  color: var(--accent);
-  font-size: 0.86rem;
-  font-weight: 700;
+.guided-tour .button {
+  padding: 0.76rem 1rem;
 }
 
-.stego-processing-card__bar {
-  height: 10px;
+.guided-tour .button:disabled {
+  cursor: not-allowed;
+  opacity: 0.46;
+  transform: none;
+}
+
+@media (max-width: 760px) {
+  .guided-tour__spotlight {
+    border-radius: 18px;
+  }
+
+  .guided-tour__card {
+    left: 24px !important;
+    right: 24px;
+    bottom: 24px;
+    top: auto !important;
+    transform: none !important;
+    width: auto;
+    max-height: 50vh;
+    overflow: auto;
+  }
+
+  .guided-tour__actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .guided-tour__nav {
+    flex-direction: column;
+  }
+
+  .guided-tour__actions .button,
+  .guided-tour__nav .button {
+    width: 100%;
+  }
+}
+
+/* Guided product tour - transparent educational overlay refinements */
+
+.guided-tour__shade {
+  background:
+    radial-gradient(circle at 18% 18%, rgba(109, 94, 252, 0.08), transparent 28%),
+    radial-gradient(circle at 82% 18%, rgba(34, 211, 238, 0.07), transparent 26%),
+    rgba(2, 6, 23, 0.26);
+  backdrop-filter: blur(1.5px);
+}
+
+.guided-tour__spotlight {
+  border: 2px solid rgba(125, 211, 252, 0.95);
+  background: rgba(125, 211, 252, 0.035);
+  box-shadow:
+    0 0 0 4px rgba(34, 211, 238, 0.11),
+    0 0 34px rgba(34, 211, 238, 0.34),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+
+.guided-tour__card {
+  background:
+    radial-gradient(circle at 18% 0%, rgba(109, 94, 252, 0.22), transparent 32%),
+    radial-gradient(circle at 100% 20%, rgba(34, 211, 238, 0.16), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.09), transparent 30%),
+    rgba(8, 13, 28, 0.9);
+  backdrop-filter: blur(18px);
+  border-color: rgba(148, 163, 184, 0.22);
+}
+
+.guided-tour__card h2 {
+  font-size: 1.42rem;
+}
+
+.guided-tour__card p {
+  font-size: 0.94rem;
+}
+
+.guided-tour__progress {
+  padding: 10px;
+  margin-inline: -10px;
   border-radius: 999px;
-  overflow: hidden;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.035);
 }
 
-.stego-processing-card__bar-fill {
-  height: 100%;
-  border-radius: inherit;
-  background: linear-gradient(135deg, var(--primary), var(--accent));
-  transition: width 240ms ease;
+@media (min-width: 761px) {
+  .guided-tour__card::before {
+    content: "";
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    left: -9px;
+    top: 34px;
+    transform: rotate(45deg);
+    background: rgba(8, 13, 28, 0.9);
+    border-left: 1px solid rgba(148, 163, 184, 0.18);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+  }
 }
 
-.stego-processing-card p {
-  margin: 0;
-  color: var(--text-soft);
+/* Always-available guided tour launcher */
+
+.guided-tour-launcher {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  z-index: 120;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 12px 15px;
+  border-radius: 999px;
+  border: 1px solid rgba(125, 211, 252, 0.22);
+  background:
+    linear-gradient(135deg, rgba(109, 94, 252, 0.16), rgba(34, 211, 238, 0.1)),
+    rgba(8, 13, 28, 0.84);
+  color: var(--text);
+  box-shadow: 0 16px 44px rgba(2, 6, 23, 0.38);
+  backdrop-filter: blur(16px);
+  cursor: pointer;
+  font-weight: 700;
   font-size: 0.9rem;
-  line-height: 1.65;
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease,
+    box-shadow 180ms ease;
 }
 
-.auth-alert,
-.files-alert,
-.cf-inline-alert {
-  overflow-wrap: anywhere;
-  word-break: break-word;
+.guided-tour-launcher:hover {
+  transform: translateY(-2px);
+  border-color: rgba(125, 211, 252, 0.4);
+  background:
+    linear-gradient(135deg, rgba(109, 94, 252, 0.22), rgba(34, 211, 238, 0.13)),
+    rgba(8, 13, 28, 0.92);
+  box-shadow: 0 20px 54px rgba(2, 6, 23, 0.48);
 }
 
+.guided-tour-launcher__dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: var(--accent);
+  box-shadow: 0 0 0 6px rgba(34, 211, 238, 0.12);
+}
+
+.guided-tour .guided-tour-launcher {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  .guided-tour-launcher {
+    right: 16px;
+    bottom: 16px;
+    padding: 11px 13px;
+    font-size: 0.84rem;
+  }
+}
