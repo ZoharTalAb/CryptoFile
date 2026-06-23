@@ -192,10 +192,6 @@ export function SecurityPage() {
                 <LogOut size={16} />
                 Logout current session
               </button>
-
-              <p className="security-v1__muted" style={{ marginTop: 12 }}>
-                Global logout across all devices is not connected yet in the backend API.
-              </p>
             </div>
           </div>
 
