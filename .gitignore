@@ -75,3 +75,9 @@ pip-log.txt
 # ===============================
 instance/
 PROJECT_SNAPSHOT_*.txt
+# Generated upload and test artifacts
+tests_tmp_uploads/
+backend/tests_tmp_uploads/
+backend/src/tests_tmp_uploads/
+backend/src/uploads/*
+!backend/src/uploads/.gitkeep
